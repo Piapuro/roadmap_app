@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/client/lib/cn";
+import { createClient } from "@/client/lib/supabase";
 
 interface FormState {
   name: string;
@@ -22,6 +24,7 @@ interface FormErrors {
 }
 
 export function RegisterForm() {
+  const router = useRouter();
   const [form, setForm] = useState<FormState>({
     name: "",
     email: "",
@@ -65,8 +68,25 @@ export function RegisterForm() {
     }
     setErrors({});
     setIsPending(true);
-    // TODO: Supabase auth integration (issue #4)
-    setIsPending(false);
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: { name: form.name },
+      },
+    });
+    if (error) {
+      setErrors({ general: toJaErrorMessage(error.message) });
+      setIsPending(false);
+      return;
+    }
+    if (data.session) {
+      router.refresh();
+      router.push("/dashboard");
+    } else {
+      router.push("/register/check-email");
+    }
   }
 
   return (
@@ -198,6 +218,20 @@ export function RegisterForm() {
       </p>
     </form>
   );
+}
+
+/* ── Helpers ─────────────────────────────────────────────── */
+
+function toJaErrorMessage(msg: string): string {
+  if (msg.includes("already registered") || msg.includes("already been registered"))
+    return "このメールアドレスはすでに登録されています";
+  if (msg.includes("Password should be"))
+    return "パスワードは6文字以上で入力してください";
+  if (msg.includes("rate limit") || msg.includes("too many"))
+    return "しばらく時間をおいてから再試行してください";
+  if (msg.includes("invalid email") || msg.includes("Invalid email"))
+    return "正しいメールアドレスを入力してください";
+  return "登録に失敗しました。時間をおいて再試行してください";
 }
 
 /* ── Sub-components ─────────────────────────────────────── */

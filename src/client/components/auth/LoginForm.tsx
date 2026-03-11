@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/client/lib/cn";
+import { createClient } from "@/client/lib/supabase";
 
 interface FormState {
   email: string;
@@ -16,6 +18,7 @@ interface FormErrors {
 }
 
 export function LoginForm() {
+  const router = useRouter();
   const [form, setForm] = useState<FormState>({ email: "", password: "" });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isPending, setIsPending] = useState(false);
@@ -44,8 +47,18 @@ export function LoginForm() {
     }
     setErrors({});
     setIsPending(true);
-    // TODO: Supabase auth integration (issue #4)
-    setIsPending(false);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    });
+    if (error) {
+      setErrors({ general: "メールアドレスまたはパスワードが正しくありません" });
+      setIsPending(false);
+      return;
+    }
+    router.refresh();
+    router.push("/dashboard");
   }
 
   return (
