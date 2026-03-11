@@ -1,0 +1,83 @@
+# CodeRabbit 設定ファイル
+# https://docs.coderabbit.ai/getting-started/configure-coderabbit
+
+language: ja-JP
+
+reviews:
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  auto_review:
+    enabled: true
+    base_branches:
+      - main
+      - develop
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/.next/**"
+    - "!**/dist/**"
+    - "!**/*.lock"
+    - "!**/package-lock.json"
+    - "!**/docs/reviews/**"
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+
+  # プロジェクト固有のレビュー観点をCodeRabbitに指示する
+  instructions: |
+    ## プロジェクト概要
+    Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4 のロードマップアプリ。
+    `src/client/` と `src/server/` でサーバー・クライアントコードを明示的に分離している。
+
+    ## アーキテクチャ規約
+
+    ### サーバー/クライアント境界
+    - `src/server/` 以下のファイルは必ず `import 'server-only'` で保護されていること
+    - Client Component は `"use client"` ディレクティブが必要な場合のみ追加する（useState/useEffect/ブラウザAPI）
+    - Server Component がデフォルト。不要な `"use client"` 付与を指摘すること
+
+    ### ファイル配置
+    - ユーティリティ関数（cn等）は `src/client/lib/` に置く
+    - サーバー専用ロジック（DB・認証・APIエラーハンドリング）は `src/server/lib/` に置く
+    - 共有型定義は `src/types/` に置く
+    - テストファイルはコンポーネントと同じディレクトリに置く（例: `ErrorMessage.test.tsx`）
+
+    ### TypeScript
+    - `any` 型の使用を禁止。`unknown` を使ってから型ガードで絞ること
+    - 関数の戻り値型は明示すること（特にサーバー関数）
+    - `never` 型は「必ず例外またはリダイレクトで終了する関数」にのみ使う
+
+    ### Tailwind CSS v4
+    - カラーをハードコードしない（`text-gray-500` など禁止）。CSS変数・セマンティックトークンを使う
+    - `text-foreground`、`text-muted-foreground`、`bg-background`、`bg-destructive/10` のようなセマンティックトークンを使うこと
+    - クラスの合成には `cn()` ユーティリティ（clsx + tailwind-merge）を使う
+
+    ### エラーハンドリング
+    - `src/server/lib/error-handler.ts` の `handleApiError` / `AppError` を使う
+    - `app/error.tsx` はセグメントレベル、ルートレイアウトのエラーは `app/global-error.tsx` で処理する
+    - `global-error.tsx` には独自の `<html><body>` タグが必要
+
+    ### コンポーネント設計
+    - UIコンポーネントには拡張用の `className?: string` prop を追加する
+    - Props は interface で定義する（type alias より interface を優先）
+    - イベントハンドラは `handle` プレフィックスを使う（例: `handleClick`）
+
+    ## レビューで必ずチェックする項目
+    1. `src/server/` ファイルに `import 'server-only'` があるか
+    2. クライアントコンポーネントで不要な `"use client"` がないか
+    3. Tailwindクラスにハードコードカラーが使われていないか
+    4. `ApiErrorCode` 型（`src/types/api.ts`）を介してエラーコードが管理されているか
+    5. `next/navigation` の `notFound()` / `redirect()` がサーバー側でのみ呼ばれているか
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: auto
+  opt_out: false
