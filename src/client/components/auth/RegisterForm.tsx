@@ -74,6 +74,7 @@ export function RegisterForm() {
       password: form.password,
       options: {
         data: { name: form.name },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
       },
     });
     if (error) {
@@ -83,7 +84,7 @@ export function RegisterForm() {
     }
     if (data.session) {
       router.refresh();
-      router.push("/dashboard");
+      router.push("/onboarding");
     } else {
       router.push("/register/check-email");
     }
