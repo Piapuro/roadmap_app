@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/client/lib/cn";
-import { createClient } from "@/client/lib/supabase";
+import { saveOnboardingSkills } from
+        "@/server/actions/onboarding";
 import {
   type SkillLevel,
   SKILL_LEVEL_OPTIONS,
@@ -36,30 +37,8 @@ export function SkillsForm() {
 
     startTransition(async () => {
       try {
-        const supabase = createClient();
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-        if (userError || !user) throw new Error("ユーザー情報の取得に失敗しました");
-
-        // Update overall skill_level in users table
-        const { error: updateError } = await supabase
-          .from("users")
-          .update({ skill_level: skillLevel })
-          .eq("id", user.id);
-        if (updateError) throw new Error("スキルレベルの保存に失敗しました");
-
-        // Insert user_skills rows for each selected tag
-        if (selectedTags.size > 0) {
-          const skillRows = SKILL_TAGS.filter((t) => selectedTags.has(t.id)).map((t) => ({
-            user_id: user.id,
-            skill_name: t.name,
-            is_learning_goal: false,
-          }));
-          const { error: skillsError } = await supabase.from("user_skills").insert(skillRows);
-          if (skillsError) throw new Error("スキルタグの保存に失敗しました");
-        }
+           await saveOnboardingSkills(skillLevel,
+         [...selectedTags]);
 
         router.push("/dashboard");
       } catch (err) {
