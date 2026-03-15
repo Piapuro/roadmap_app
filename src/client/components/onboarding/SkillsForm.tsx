@@ -74,7 +74,7 @@ export function SkillsForm() {
                 className={cn(
                   "flex flex-col gap-1 rounded-xl border-2 p-3.5 text-left transition-colors",
                   isSelected
-                    ? "border-primary bg-[#fff4e8]"
+                    ? "border-primary bg-primary/10"
                     : "border-border bg-background hover:border-primary/40"
                 )}
               >

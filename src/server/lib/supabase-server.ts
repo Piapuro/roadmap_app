@@ -25,8 +25,10 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
-          } catch {
-            // Server Component から呼ばれた場合は無視
+          } catch (error) {
+            // Server Component では cookies の set が不可のため無視
+            // Route Handler / Server Action からのエラーはログに出力
+            console.error("Cookie set failed:", error);
           }
         },
       },

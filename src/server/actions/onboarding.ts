@@ -20,8 +20,38 @@ export async function saveOnboardingSkills(
     .eq("id", user.id);
   if (updateError) throw new Error("スキルレベルの保存に失敗しました");
 
-  if (skillIds.length > 0) {
-    const skillRows = SKILL_TAGS.filter((t) => skillIds.includes(t.id)).map((t) => ({
+  // 入力された skillId がすべて SKILL_TAGS に存在するか検証
+  const matchedTags = SKILL_TAGS.filter((t) => skillIds.includes(t.id));
+  if (matchedTags.length !== skillIds.length) {
+    throw new Error("無効なスキルIDが含まれています");
+  }
+
+  // 既存スキルを取得して差分同期（選択解除されたものを削除）
+  const { data: existingSkills, error: fetchError } = await supabase
+    .from("user_skills")
+    .select("skill_name")
+    .eq("user_id", user.id);
+  if (fetchError) throw new Error("既存スキルの取得に失敗しました");
+
+  const selectedSkillNames = matchedTags.map((t) => t.name);
+  const existingNames = (existingSkills ?? []).map(
+    (s: { skill_name: string }) => s.skill_name
+  );
+  const toDeleteNames = existingNames.filter(
+    (name: string) => !selectedSkillNames.includes(name)
+  );
+
+  if (toDeleteNames.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("user_skills")
+      .delete()
+      .eq("user_id", user.id)
+      .in("skill_name", toDeleteNames);
+    if (deleteError) throw new Error("スキルタグの削除に失敗しました");
+  }
+
+  if (matchedTags.length > 0) {
+    const skillRows = matchedTags.map((t) => ({
       user_id: user.id,
       skill_name: t.name,
       is_learning_goal: false,
