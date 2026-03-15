@@ -143,7 +143,7 @@ export function Step5Confirm() {
             <div className="flex flex-col gap-0.5">
               <span className="font-[family-name:var(--font-geist-sans)] text-[#666666] text-xs">人数</span>
               <span className="font-[family-name:var(--font-jetbrains-mono)] text-[#111111] text-sm font-semibold">
-                {memberCount ?? '—'} 人
+                {memberCount !== null ? `${memberCount} 人` : '—'}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">

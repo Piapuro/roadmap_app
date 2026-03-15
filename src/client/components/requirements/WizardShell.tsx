@@ -90,7 +90,8 @@ export function WizardShell() {
           supplementUrl,
         })
         router.push('/ai-loading')
-      } catch {
+      } catch (err) {
+        setErrors({ form: err instanceof Error ? err.message : '送信に失敗しました。もう一度お試しください。' })
         setIsSubmitting(false)
       }
       return

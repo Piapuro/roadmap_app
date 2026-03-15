@@ -20,7 +20,7 @@ export function Step2FeatureCheck() {
   const filteredCategories = categories
     .map((cat) => ({
       ...cat,
-      features: cat.features.filter((f) => !search || f.includes(search)),
+      features: cat.features.filter((f) => !search || f.toLowerCase().includes(search.toLowerCase())),
     }))
     .filter((cat) => cat.features.length > 0)
 

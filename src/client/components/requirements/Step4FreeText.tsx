@@ -15,7 +15,7 @@ export function Step4FreeText() {
         {/* 補足メモ */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <label className="font-[family-name:var(--font-geist-sans)] text-[#111111] text-sm font-medium">
+            <label htmlFor="supplement-memo" className="font-[family-name:var(--font-geist-sans)] text-[#111111] text-sm font-medium">
               補足メモ
               <span className="ml-2 text-[#666666] font-normal">（任意）</span>
             </label>
@@ -29,8 +29,10 @@ export function Step4FreeText() {
             </span>
           </div>
           <textarea
+            id="supplement-memo"
             value={freeText}
             onChange={(e) => setFreeText(e.target.value)}
+            maxLength={MAX_FREE_TEXT}
             placeholder="プロジェクトの目的・背景・制約条件など補足情報を入力してください..."
             rows={8}
             className="w-full rounded-lg border border-[#CBCCC9] bg-[#F2F3F0] px-4 py-3 text-sm text-[#111111] placeholder:text-[#CBCCC9] outline-none focus:ring-2 focus:ring-[#FF8400] resize-none transition-shadow"
@@ -39,11 +41,12 @@ export function Step4FreeText() {
 
         {/* 参考URL */}
         <div className="flex flex-col gap-1.5">
-          <label className="font-[family-name:var(--font-geist-sans)] text-[#111111] text-sm font-medium">
+          <label htmlFor="supplement-url" className="font-[family-name:var(--font-geist-sans)] text-[#111111] text-sm font-medium">
             参考URL
             <span className="ml-2 text-[#666666] font-normal">（任意）</span>
           </label>
           <input
+            id="supplement-url"
             type="url"
             value={supplementUrl}
             onChange={(e) => setSupplementUrl(e.target.value)}

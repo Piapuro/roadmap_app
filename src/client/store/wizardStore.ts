@@ -64,7 +64,13 @@ export const useWizardStore = create<WizardState & WizardActions>()((set, get) =
     set({ techStack: next })
   },
 
-  setTeamScale: (data) => set(data),
+  setTeamScale: (data) =>
+    set({
+      memberCount:     data.memberCount,
+      startDate:       data.startDate,
+      releaseDate:     data.releaseDate,
+      experienceLevel: data.experienceLevel,
+    }),
 
   setFreeText: (text) => set({ freeText: text }),
   setSupplementUrl: (url) => set({ supplementUrl: url }),

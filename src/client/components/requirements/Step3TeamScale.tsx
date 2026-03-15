@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { cn } from '@/client/lib/cn'
 import { useWizardStore } from '@/client/store/wizardStore'
-import { PRODUCT_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, type ExperienceLevel } from '@/types/requirements'
+import { PRODUCT_TYPE_LABELS, type ExperienceLevel } from '@/types/requirements'
 
 const EXPERIENCE_OPTIONS: { value: ExperienceLevel; label: string; description: string }[] = [
   { value: 'beginner',     label: '初心者中心',  description: '開発経験が少ないメンバーが多い' },
@@ -20,9 +20,14 @@ export function Step3TeamScale() {
   const [localReleaseDate, setLocalReleaseDate] = useState(releaseDate)
 
   function toIntOrNull(s: string): number | null {
-    return s === '' ? null : parseInt(s, 10)
+    if (s === '') return null
+    const n = parseInt(s, 10)
+    return Number.isNaN(n) ? null : n
   }
 
+  // localMember/localStartDate/localReleaseDate の変化のみ監視し、experienceLevel は
+  // handleExperience が直接ストアを更新するため deps から除外（二重更新を防ぐ）
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setTeamScale({
       memberCount: toIntOrNull(localMember),
@@ -30,7 +35,7 @@ export function Step3TeamScale() {
       releaseDate: localReleaseDate,
       experienceLevel,
     })
-  }, [localMember, localStartDate, localReleaseDate, experienceLevel, setTeamScale])
+  }, [localMember, localStartDate, localReleaseDate, setTeamScale])
 
   function handleExperience(v: ExperienceLevel) {
     setTeamScale({

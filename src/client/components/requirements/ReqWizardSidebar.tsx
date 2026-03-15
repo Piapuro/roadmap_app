@@ -11,8 +11,7 @@ interface ReqWizardSidebarProps {
 export function ReqWizardSidebar({ currentStep }: ReqWizardSidebarProps) {
   return (
     <aside
-      className="flex flex-col w-[280px] min-h-screen bg-[#18181b] shrink-0"
-      style={{ borderRight: '1px solid rgba(255,255,255,0.1)' }}
+      className="flex flex-col w-[280px] min-h-screen bg-[#18181b] shrink-0 border-r border-white/10"
     >
       {/* Logo */}
       <div className="flex items-center gap-2 px-8 h-[88px] border-b border-white/10 shrink-0">

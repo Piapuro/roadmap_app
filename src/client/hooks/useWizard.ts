@@ -69,7 +69,7 @@ export function useWizard() {
       if (state.freeText.length > 1000) {
         errors.freeText = '1000文字以内で入力してください'
       }
-      if (state.supplementUrl && !/^https?:\/\/.+/.test(state.supplementUrl)) {
+      if (state.supplementUrl && !/^https:\/\/.+/.test(state.supplementUrl)) {
         errors.supplementUrl = 'URLはhttps://から始まる形式で入力してください'
       }
     }
