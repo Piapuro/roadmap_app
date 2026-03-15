@@ -1,5 +1,6 @@
 export type TeamRole = "PM" | "FE" | "BE" | "UI/UX" | "Infra";
 export type MemberStatus = "online" | "away" | "offline";
+export type ProjectRole = "OWNER" | "MEMBER";
 
 export interface Member {
   id: string;
@@ -7,6 +8,7 @@ export interface Member {
   email: string;
   avatarInitial: string;
   role: TeamRole;
+  projectRole: ProjectRole;
   skills: string[];
   status: MemberStatus;
 }
@@ -57,6 +59,9 @@ export const STATUS_STYLES: Record<
 };
 
 // BE実装（issue #015）が完了するまでのモックデータ
+// モック上のログインユーザー: id="1"（田中 太郎）= OWNER
+export const MOCK_CURRENT_USER_ID = "1";
+
 export const MOCK_MEMBERS: Member[] = [
   {
     id: "1",
@@ -64,6 +69,7 @@ export const MOCK_MEMBERS: Member[] = [
     email: "tanaka@example.com",
     avatarInitial: "田",
     role: "PM",
+    projectRole: "OWNER",
     skills: ["Next.js", "TypeScript"],
     status: "online",
   },
@@ -73,6 +79,7 @@ export const MOCK_MEMBERS: Member[] = [
     email: "suzuki@example.com",
     avatarInitial: "鈴",
     role: "FE",
+    projectRole: "MEMBER",
     skills: ["React", "CSS"],
     status: "online",
   },
@@ -82,6 +89,7 @@ export const MOCK_MEMBERS: Member[] = [
     email: "kimura@example.com",
     avatarInitial: "木",
     role: "BE",
+    projectRole: "MEMBER",
     skills: ["Go", "PostgreSQL"],
     status: "away",
   },
@@ -91,6 +99,7 @@ export const MOCK_MEMBERS: Member[] = [
     email: "nakamura@example.com",
     avatarInitial: "中",
     role: "UI/UX",
+    projectRole: "MEMBER",
     skills: ["Figma", "Tailwind"],
     status: "online",
   },
