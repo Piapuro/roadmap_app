@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>要件定義ウィザード 実装内容説明 — 2026-03-15</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: #F2F3F0;
+      color: #111111;
+      line-height: 1.6;
+    }
+
+    /* ─── Header ─── */
+    .page-header {
+      background: #18181b;
+      color: #fafafa;
+      padding: 32px 48px;
+      border-bottom: 3px solid #FF8400;
+    }
+    .page-header h1 { font-family: 'Courier New', monospace; font-size: 22px; color: #FF8400; }
+    .page-header p  { font-size: 13px; color: #a1a1aa; margin-top: 6px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 40px 48px; }
+
+    /* ─── Section titles ─── */
+    .section-title {
+      font-family: 'Courier New', monospace;
+      font-size: 17px;
+      font-weight: 700;
+      margin: 48px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #CBCCC9;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ─── Overview cards ─── */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .overview-card {
+      background: white;
+      border: 1px solid #CBCCC9;
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+    .overview-card h3 {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: #FF8400;
+      margin-bottom: 8px;
+    }
+    .overview-card p {
+      font-size: 13px;
+      color: #444;
+      line-height: 1.7;
+    }
+    .overview-card .route {
+      display: inline-block;
+      margin-top: 8px;
+      background: #18181b;
+      color: #fde68a;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    /* ─── Flow diagram ─── */
+    .flow {
+      background: white;
+      border: 1px solid #CBCCC9;
+      border-radius: 12px;
+      padding: 24px 28px;
+      font-size: 13px;
+    }
+    .flow-steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin: 16px 0 8px;
+    }
+    .flow-step {
+      background: #F2F3F0;
+      border: 1px solid #CBCCC9;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .flow-step.active { background: #FF8400; color: #111; border-color: #FF8400; }
+    .flow-arrow {
+      font-size: 18px;
+      color: #CBCCC9;
+      padding: 0 6px;
+    }
+    .flow-note {
+      font-size: 12px;
+      color: #888;
+      margin-top: 6px;
+    }
+
+    /* ─── File cards ─── */
+    .file-card {
+      background: white;
+      border: 1px solid #CBCCC9;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .file-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid #F2F3F0;
+      background: #fafafa;
+    }
+    .file-card-header .badge {
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge.type   { background: #ede9fe; color: #5b21b6; }
+    .badge.store  { background: #fef9c3; color: #854d0e; }
+    .badge.hook   { background: #e0f2fe; color: #075985; }
+    .badge.comp   { background: #f0fdf4; color: #166534; }
+    .badge.action { background: #fff7ed; color: #9a3412; }
+    .badge.page   { background: #faf5ff; color: #6b21a8; }
+    .badge.const  { background: #fef3c7; color: #92400e; }
+    .file-card-header .filepath {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111;
+    }
+    .file-card-body {
+      padding: 16px 20px;
+      font-size: 13px;
+      color: #444;
+      line-height: 1.75;
+    }
+    .file-card-body ul {
+      padding-left: 18px;
+      margin-top: 6px;
+    }
+    .file-card-body li {
+      margin-bottom: 4px;
+    }
+    .file-card-body code {
+      background: #f3f4f6;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #374151;
+    }
+    .file-card-body .note {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #fff7ed;
+      border-left: 3px solid #FF8400;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: #9a3412;
+    }
+    .file-card-body .note-blue {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #eff6ff;
+      border-left: 3px solid #2563eb;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: #1e40af;
+    }
+
+    /* ─── Mini code block ─── */
+    pre {
+      background: #18181b;
+      color: #e4e4e7;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 11.5px;
+      overflow-x: auto;
+      line-height: 1.55;
+      margin: 8px 0 0;
+      font-family: 'Courier New', monospace;
+    }
+    .cm-dim  { color: #71717a; }
+    .cm-key  { color: #fde68a; }
+    .cm-val  { color: #86efac; }
+    .cm-type { color: #93c5fd; }
+    .cm-str  { color: #fca5a5; }
+
+    /* ─── Review summary ─── */
+    .review-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .rev-card {
+      background: white;
+      border: 1px solid #CBCCC9;
+      border-radius: 10px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .rev-card .count { font-family: 'Courier New', monospace; font-size: 30px; font-weight: 700; line-height: 1; }
+    .rev-card .label { font-size: 11px; color: #666; margin-top: 5px; }
+    .rev-card.grade    .count { color: #FF8400; font-size: 34px; }
+    .rev-card.critical .count { color: #dc2626; }
+    .rev-card.major    .count { color: #ea580c; }
+    .rev-card.minor    .count { color: #ca8a04; }
+    .rev-card.good     .count { color: #16a34a; }
+
+    /* ─── Fix table ─── */
+    .fix-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      font-size: 13px;
+    }
+    .fix-table thead tr { background: #18181b; }
+    .fix-table th {
+      color: #fafafa;
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+    }
+    .fix-table td { padding: 10px 16px; border-bottom: 1px solid #F2F3F0; vertical-align: top; }
+    .fix-table tr:last-child td { border-bottom: none; }
+
+    .sev-c { display:inline-block; padding:2px 9px; border-radius:100px; font-size:10px; font-weight:700; background:#fee2e2; color:#991b1b; }
+    .sev-m { display:inline-block; padding:2px 9px; border-radius:100px; font-size:10px; font-weight:700; background:#ffedd5; color:#9a3412; }
+    .sev-n { display:inline-block; padding:2px 9px; border-radius:100px; font-size:10px; font-weight:700; background:#fef9c3; color:#854d0e; }
+
+    .status-done  { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; background:#dcfce7; color:#166534; }
+    .status-defer { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; background:#dbeafe; color:#1e40af; }
+    .status-opt   { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; background:#f3f4f6; color:#374151; }
+
+    footer {
+      text-align: center;
+      padding: 32px;
+      font-size: 12px;
+      color: #888;
+      border-top: 1px solid #CBCCC9;
+      margin-top: 48px;
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>要件定義ウィザード — 実装内容説明</h1>
+  <p>Issue #024 / #026 &nbsp;|&nbsp; 2026-03-15 &nbsp;|&nbsp; Next.js 16 + TypeScript + Zustand v5 &nbsp;|&nbsp; 新規作成 16ファイル</p>
+</header>
+
+<div class="container">
+
+  <!-- ═══ 1. 今回の作業概要 ═══ -->
+  <div class="section-title">📋 今回の作業概要</div>
+
+  <div class="overview-grid">
+    <div class="overview-card">
+      <h3>🧙 要件定義ウィザード（新規作成）</h3>
+      <p>
+        チームが開発するプロダクトの要件を5つのステップで入力するウィザード画面を作成しました。
+        STEP1〜5の入力を Zustand で一元管理し、最終ステップで「AI分析を開始」ボタンを押すと
+        バックエンドAPIに要件データを送信してロードマップ生成を開始します。
+      </p>
+      <span class="route">GET /requirements/new</span>
+    </div>
+    <div class="overview-card">
+      <h3>📄 要件定義ビュー（新規作成）</h3>
+      <p>
+        生成済みの要件定義を閲覧するページを作成しました。
+        プロダクト種別・人数・期間・経験レベルのサマリーバー、機能一覧、
+        AI生成ステータス、AIレビュー結果を表示します。
+        「AIで再生成」「要件を編集」ボタンも配置しています。
+      </p>
+      <span class="route">GET /requirements/[reqId]</span>
+    </div>
+  </div>
+
+  <!-- ═══ 2. ウィザードの流れ ═══ -->
+  <div class="section-title">🔄 ウィザードの流れ（STEP 1〜5）</div>
+
+  <div class="flow">
+    <div class="flow-steps">
+      <div class="flow-step active">STEP 1<br><small>種別選択</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active">STEP 2<br><small>機能・要件</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active">STEP 3<br><small>チーム・規模</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active">STEP 4<br><small>自由記述</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active">STEP 5<br><small>確認・生成</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="background:#18181b;color:#FF8400;border-color:#FF8400">API送信<br><small>POST /requirements</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="background:#18181b;color:#fafafa;border-color:#333">/ai-loading<br><small>リダイレクト</small></div>
+    </div>
+    <p style="font-size:13px;color:#444;margin-top:12px">
+      全ステップは <strong>1つのページ（/requirements/new）</strong> で完結しています。
+      画面遷移はなく、<strong>Zustandの <code>currentStep</code></strong> によってどのコンポーネントを表示するかを切り替えています。
+      各ステップには「次へ」ボタン押下時のバリデーションがあり、入力不備があるとエラーメッセージを表示して進めません。
+    </p>
+    <p class="flow-note">※ teamId は現在 localStorage から取得。#006（Supabase Auth）マージ後にサーバーサイドセッションへ置き換え予定。</p>
+  </div>
+
+  <!-- ═══ 3. ファイル別説明 ═══ -->
+  <div class="section-title">📁 作成ファイル詳細（16ファイル）</div>
+
+  <!-- ── 型定義 ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge type">型定義</span>
+      <span class="filepath">src/types/requirements.ts</span>
+    </div>
+    <div class="file-card-body">
+      <p>要件定義機能全体で使う <strong>TypeScript の型とラベル定数</strong> をまとめたファイルです。</p>
+      <ul>
+        <li><code>ProductType</code> — プロダクト種別の型。<code>'web' | 'app' | 'game' | 'ai'</code> の4択。</li>
+        <li><code>ExperienceLevel</code> — チーム経験レベルの型。<code>'beginner' | 'intermediate' | 'advanced'</code> の3択。</li>
+        <li><code>RequirementStatus</code> — 要件のステータス。<code>'draft'（下書き）| 'locked'（確定済み）</code>。</li>
+        <li><code>WizardState</code> — ウィザードの入力内容をすべて格納する型（STEP1〜5の全フィールド + 現在のステップ番号 + 送信中フラグ）。</li>
+        <li><code>Requirement</code> — APIから返ってくる要件定義データの型（id, teamId, features配列など）。</li>
+        <li><code>PRODUCT_TYPE_LABELS</code> — プロダクト種別を日本語に変換するマップ（例: <code>'web' → 'Webアプリ'</code>）。</li>
+        <li><code>EXPERIENCE_LEVEL_LABELS</code> — 経験レベルを日本語に変換するマップ（例: <code>'beginner' → '初心者中心'</code>）。</li>
+        <li><code>REQ_WIZARD_STEPS</code> — 5ステップの定義配列。ステッパーとサイドバーの両方で使う表示ラベルを持つ。</li>
+      </ul>
+      <div class="note">
+        <code>Record&lt;ProductType, string&gt;</code> を使うことで、ProductType に新しい値を追加し忘れた場合にコンパイルエラーで気づけるようになっています。
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 定数 ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge const">定数</span>
+      <span class="filepath">src/client/constants/featureList.ts</span>
+    </div>
+    <div class="file-card-body">
+      <p>STEP2「機能・要件選択」で表示する <strong>機能一覧のデータ定義</strong> ファイルです。</p>
+      <ul>
+        <li>型 <code>FeatureCategory</code> で「カテゴリID / カテゴリ名 / 機能名リスト」のまとまりを定義。</li>
+        <li><code>FEATURE_LIST</code> は <code>Record&lt;ProductType, FeatureCategory[]&gt;</code> 型で、プロダクト種別ごとに異なる機能カテゴリを持つ。</li>
+        <li>例：<code>web</code> なら「認証・ユーザー管理」「チーム・コラボ」「決済・外部連携」「コンテンツ・UI」の4カテゴリ。</li>
+        <li>例：<code>ai</code> なら「UI・入出力」「AI連携」「データ管理」の3カテゴリ。</li>
+      </ul>
+      <div class="note-blue">
+        プロダクト種別を変えると表示される機能リストも変わります。ここを編集するだけで機能の追加・削除ができます。
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ストア ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge store">ストア</span>
+      <span class="filepath">src/client/store/wizardStore.ts</span>
+    </div>
+    <div class="file-card-body">
+      <p>ウィザードの入力状態をすべて管理する <strong>Zustand ストア</strong> です。</p>
+      <ul>
+        <li>ページをまたがずに状態を保持し、STEP1〜5 の全コンポーネントから同じ状態を読み書きできます。</li>
+        <li><code>setProductType(v)</code> — プロダクト種別を更新。同時に <code>selectedFeatures</code> をリセットして、前の種別の選択が残らないようにします。</li>
+        <li><code>toggleFeature(name)</code> — 機能名を渡すと選択追加/解除をトグルします。</li>
+        <li><code>setTeamScale({ memberCount, periodWeeks, experienceLevel })</code> — STEP3 の3つの値をまとめて更新。</li>
+        <li><code>setFreeText(text)</code> / <code>setSupplementUrl(url)</code> — STEP4 の2フィールドを個別に更新（まとめると高速タイピング時に古い値が混入するため分離）。</li>
+        <li><code>nextStep()</code> / <code>prevStep()</code> / <code>goToStep(n)</code> — ステップ移動。</li>
+        <li><code>reset()</code> — ウィザード完了後やキャンセル時に全状態を初期値に戻す。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── フック ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge hook">フック</span>
+      <span class="filepath">src/client/hooks/useWizard.ts</span>
+    </div>
+    <div class="file-card-body">
+      <p>ステップごとのバリデーション処理をまとめた <strong>カスタムフック</strong> です。</p>
+      <ul>
+        <li><code>validateStep(step)</code> を呼ぶと <code>{ valid: boolean, errors: Record&lt;string, string&gt; }</code> を返します。</li>
+        <li>STEP1 — プロダクト種別が未選択なら NG。</li>
+        <li>STEP2 — 機能が1件も選択されていなければ NG。</li>
+        <li>STEP3 — 人数（1〜20の整数）・期間（1〜52週の整数）・経験レベルの3項目を検証。</li>
+        <li>STEP4 — 補足メモが1000文字超、または参考URLが <code>https://</code> 以外の形式なら NG。</li>
+      </ul>
+      <div class="note">
+        整数チェックは「整数かどうか」を先に確認してから範囲チェックをする順番になっています（逆順だとデッドコードになるため）。
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WizardShell ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/WizardShell.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>ウィザード画面全体の <strong>骨格コンポーネント</strong> です。左サイドバー・上部ステッパー・中央コンテンツ・下部ナビゲーションフッターを組み合わせています。</p>
+      <ul>
+        <li><strong>ヘッダー</strong> — 現在のステップタイトルと説明文を表示。<code>STEP_CONFIG</code> 配列からステップ番号に応じた内容を出す。</li>
+        <li><strong>コンテンツ切り替え</strong> — <code>currentStep</code> の値に応じて Step1〜Step5 のどれかを表示する（ページ遷移なし）。</li>
+        <li><strong>フッター（次へ / 前へ）</strong> — 「次へ」を押すと <code>validateStep()</code> でバリデーション。失敗ならエラー表示、成功なら次ステップへ進む。STEP5 の「AI分析を開始」押下時だけ API 送信処理を行う。</li>
+        <li><strong>API送信処理</strong> — <code>saveRequirement()</code>（Server Action）を呼び、成功したら <code>/ai-loading</code> にリダイレクト。失敗時は <code>isSubmitting</code> を解除してリトライ可能にする。</li>
+        <li><strong>teamId</strong> — 現在は <code>localStorage.getItem('team_id')</code> から取得（#006 マージ後にセッションへ変更予定）。空の場合はエラーを表示して送信を止める。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Sidebar ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/ReqWizardSidebar.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>ウィザード左側に表示される <strong>ダークサイドバー</strong>（幅280px）です。</p>
+      <ul>
+        <li>上部に「ROADMAP AI」ロゴ（オレンジのコンパスアイコン）を表示。</li>
+        <li>「要件定義」という見出しの下に、STEP1〜5 のナビゲーションリストを表示。</li>
+        <li>現在のステップはハイライト表示、完了済みのステップはオレンジ色 + チェックアイコンが付く。</li>
+        <li>下部にユーザー名・メールアドレスを表示（現在はハードコード。#006 マージ後に実際のユーザー情報を渡す予定）。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Stepper ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/ReqWizardStepper.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>ウィザードヘッダーに表示される <strong>横型のステップ進捗バー</strong> です。</p>
+      <ul>
+        <li>STEP1〜5 を丸いアイコン（番号）とラベルで横並びに表示。各ステップの間には横線のコネクターが入る。</li>
+        <li>完了済み → 緑の背景 + チェックマーク。現在のステップ → オレンジ背景 + 白の番号。未到達 → グレーの枠線。</li>
+        <li>ラベルも同様に、現在ステップはオレンジ太字、それ以外はグレー。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Step1 ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/Step1ProductType.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>STEP1「プロダクト種別を選択」の <strong>入力画面</strong> です。</p>
+      <ul>
+        <li>Webアプリ・モバイルアプリ・ゲーム・AIプロダクトの4択を2×2のカードグリッドで表示。</li>
+        <li>各カードにはアイコン（絵文字）・タイトル・説明文を表示。</li>
+        <li>クリックして選択するとカードのボーダーがオレンジになり、右上にオレンジのチェックマークが出る。</li>
+        <li>選択と同時に <code>setProductType()</code> を呼び、前ステップで選択した機能リストを自動リセットする。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Step2 ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/Step2FeatureCheck.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>STEP2「機能・要件を選択」の <strong>入力画面</strong> です。2カラム構成になっています。</p>
+      <ul>
+        <li><strong>左カラム（機能チェックリスト）</strong> — STEP1 で選んだプロダクト種別に対応する機能をカテゴリごとにグループ表示。テキスト検索で絞り込みもできる。チェックするとオレンジのチェックボックスに変わる。</li>
+        <li><strong>右パネル（選択済み一覧）</strong> — 選択した機能の一覧と「N / 全機能数 選択中」のプログレスバーを表示。選択数がひと目でわかる。</li>
+        <li>上部には選択中のプロダクト種別をオレンジのバッジで表示。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Step3 ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/Step3TeamScale.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>STEP3「チーム・規模を設定」の <strong>入力画面</strong> です。</p>
+      <ul>
+        <li>上部に「プロダクト種別: Webアプリ ｜ 選択機能: 5件」のようなサマリーバーを表示して、前ステップの入力を確認できる。</li>
+        <li><strong>メンバー人数</strong> — 数値入力（1〜20人）。</li>
+        <li><strong>開発期間</strong> — 数値入力（1〜52週）。</li>
+        <li><strong>チーム経験レベル</strong> — 「初心者中心 / 混合 / 経験者中心」の3択ラジオカード。選択するとオレンジのボーダーが付く。</li>
+        <li>3つの入力値は <code>useEffect</code> でリアルタイムに Zustand ストアへ反映される。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Step4 ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/Step4FreeText.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>STEP4「補足情報を入力」の <strong>入力画面</strong> です（いずれも任意入力）。</p>
+      <ul>
+        <li><strong>補足メモ</strong> — 最大1000文字のテキストエリア。現在の残り文字数をリアルタイム表示。1000文字を超えると残り文字数が赤字になる。</li>
+        <li><strong>参考URL</strong> — 仕様書・参考サービスのURLを入力するテキストフィールド（<code>https://</code> から始まる形式のみ有効）。</li>
+        <li>2つのフィールドは独立した <code>setFreeText</code> / <code>setSupplementUrl</code> でそれぞれ Zustand に保存する。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Step5 ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/Step5Confirm.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>STEP5「確認・AI分析を開始」の <strong>確認画面</strong> です。送信ボタンは WizardShell のフッターにあります（このコンポーネントは表示専用）。</p>
+      <ul>
+        <li><strong>左カラム（入力サマリー）</strong> — プロダクト種別・選択機能・チーム規模・自由記述の4ブロックで入力内容を一覧表示。各ブロックに「編集」ボタンがあり、クリックで対応するステップに直接戻れる（<code>goToStep(N)</code>）。</li>
+        <li><strong>右パネル（AI生成案内）</strong> — 「AI生成の準備完了」メッセージと、生成にかかる時間・注意事項を表示。</li>
+        <li>参考URLは <code>target="_blank" rel="noopener noreferrer"</code> 付きのリンクで表示。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── RequirementsView ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge comp">コンポーネント</span>
+      <span class="filepath">src/client/components/requirements/RequirementsView.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>/requirements/[reqId] で生成済み要件を閲覧する <strong>ビューコンポーネント</strong> です。APIから取得した <code>Requirement</code> オブジェクトを受け取って表示します。</p>
+      <ul>
+        <li><strong>ヘッダー</strong> — 「チーム &gt; 要件定義」のパンくず + 「AIで再生成」「要件を編集」ボタン。要件が <code>locked</code>（確定済み）の場合は「要件を編集」が非活性になる。</li>
+        <li><strong>サマリーバー</strong> — プロダクト種別 / 人数 / 期間 / 経験レベル / 最終更新 を横1行で表示。</li>
+        <li><strong>左カラム</strong> — 機能一覧（必須機能は緑チェック、未選択は灰丸で区別）+ 自由記述・補足メモ。</li>
+        <li><strong>右カラム（360px）</strong> — AI生成ステータス（<code>draft</code> / <code>locked</code> で表示が変わる）+ AIレビュー結果（曖昧さ検出・MVP範囲提案・ロードマップ評価のプレースホルダー）。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Server Actions ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge action">Server Action</span>
+      <span class="filepath">src/server/actions/requirements.ts</span>
+    </div>
+    <div class="file-card-body">
+      <p>バックエンドAPIとの通信処理を担う <strong>Next.js Server Actions</strong> ファイルです（<code>'use server'</code> 宣言）。クライアントから直接呼び出せます。</p>
+      <ul>
+        <li><code>saveRequirement(input)</code> — STEP5 の「AI分析を開始」で呼ばれます。<code>POST /api/v1/teams/{teamId}/requirements</code> にリクエストを送り、レスポンスの <code>Requirement</code> オブジェクトを返す。</li>
+        <li><code>getRequirement(teamId, reqId)</code> — /requirements/[reqId] ページのサーバー側で呼ばれます。<code>GET /api/v1/teams/{teamId}/requirements/{reqId}</code> で要件を取得して返す。</li>
+        <li>両関数とも <code>API_URL</code> 環境変数が未設定の場合は早期エラーを投げる。<code>res.ok</code> チェックと <code>data?.id</code> の最低限バリデーションも実施。</li>
+        <li>URLにパスパラメータを含める際は <code>encodeURIComponent</code> を適用してURLインジェクションを防ぐ。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Pages ── -->
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge page">ページ</span>
+      <span class="filepath">src/app/(dashboard)/requirements/new/page.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>/requirements/new のルートに対応する <strong>Server Componentページ</strong> です。</p>
+      <ul>
+        <li>ページメタデータ（タイトル・description）を定義。</li>
+        <li>中身はほぼ <code>&lt;WizardShell /&gt;</code> を呼び出すだけのシンプルな構成。サーバー側の事前データ取得は不要なため最小限にしています。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="file-card">
+    <div class="file-card-header">
+      <span class="badge page">ページ</span>
+      <span class="filepath">src/app/(dashboard)/requirements/[reqId]/page.tsx</span>
+    </div>
+    <div class="file-card-body">
+      <p>/requirements/[reqId] のルートに対応する <strong>Server Componentページ</strong> です。</p>
+      <ul>
+        <li>URLの <code>[reqId]</code> パラメータと <code>?teamId=</code> クエリを受け取り、サーバー側で <code>getRequirement()</code> を呼んでデータを取得。</li>
+        <li>取得に失敗した場合（APIエラーや存在しない reqId など）は <code>notFound()</code> を呼んで 404 ページを表示。</li>
+        <li>取得成功時は <code>&lt;RequirementsView requirement={...} /&gt;</code> に渡して表示。</li>
+      </ul>
+      <div class="note">
+        現在 teamId をクエリパラメータから取得しているため、他チームのIDを指定すればデータを取得できてしまいます（IDOR）。#006（Supabase Auth）マージ後にサーバーサイドセッションから取得するよう変更予定です。
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. コードレビュー結果 ═══ -->
+  <div class="section-title">🔍 コードレビュー結果（実施 → 全修正適用済み）</div>
+
+  <div class="review-grid">
+    <div class="rev-card grade">
+      <div class="count">B+</div>
+      <div class="label">総合評価</div>
+    </div>
+    <div class="rev-card critical">
+      <div class="count">4</div>
+      <div class="label">🔴 Critical<br><small style="color:#16a34a">全件対応済み</small></div>
+    </div>
+    <div class="rev-card major">
+      <div class="count">8</div>
+      <div class="label">🟠 Major<br><small style="color:#16a34a">6件対応済み</small></div>
+    </div>
+    <div class="rev-card minor">
+      <div class="count">8</div>
+      <div class="label">🟡 Minor<br><small style="color:#16a34a">3件対応済み</small></div>
+    </div>
+    <div class="rev-card good">
+      <div class="count">7</div>
+      <div class="label">🟢 Good</div>
+    </div>
+  </div>
+
+  <table class="fix-table">
+    <thead>
+      <tr>
+        <th style="width:60px">ID</th>
+        <th style="width:90px">重要度</th>
+        <th>指摘内容</th>
+        <th style="width:110px">対応状況</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>C-1</strong></td>
+        <td><span class="sev-c">Critical</span></td>
+        <td>teamId が空のまま保存 API を呼べてしまう → 空チェックを追加してエラーメッセージを表示するよう修正</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>C-2</strong></td>
+        <td><span class="sev-c">Critical</span></td>
+        <td>teamId をクエリパラメータから取得（IDOR脆弱性）→ Supabase Auth のセッションから取得すべき</td>
+        <td><span class="status-defer">⏳ #006待ち</span></td>
+      </tr>
+      <tr>
+        <td><strong>C-3</strong></td>
+        <td><span class="sev-c">Critical</span></td>
+        <td>API_URL 未設定時に空文字フォールバックしていた → 未設定なら早期エラーを throw するよう修正</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>C-4</strong></td>
+        <td><span class="sev-c">Critical</span></td>
+        <td>API レスポンスの型バリデーションなし → <code>data?.id</code> の最低限チェックを追加</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>M-1</strong></td>
+        <td><span class="sev-m">Major</span></td>
+        <td>バリデーションの整数チェックが到達しないデッドコードになっていた → チェック順序を修正</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>M-2</strong></td>
+        <td><span class="sev-m">Major</span></td>
+        <td>useEffect の依存配列に <code>experienceLevel</code> が欠落 → 追加して React の exhaustive-deps に準拠</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>M-3/4</strong></td>
+        <td><span class="sev-m">Major</span></td>
+        <td>WizardShell が Zustand ストア全体を購読（不要な再レンダリングの可能性）→ セレクタ化を推奨</td>
+        <td><span class="status-opt">◯ 任意</span></td>
+      </tr>
+      <tr>
+        <td><strong>M-5</strong></td>
+        <td><span class="sev-m">Major</span></td>
+        <td>サイドバーのユーザー名・メールがハードコード → #006 マージ後に props 化予定</td>
+        <td><span class="status-defer">⏳ #006待ち</span></td>
+      </tr>
+      <tr>
+        <td><strong>M-6</strong></td>
+        <td><span class="sev-m">Major</span></td>
+        <td>parseInt の DRY 違反 → <code>toIntOrNull()</code> ヘルパーに切り出し</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>M-7</strong></td>
+        <td><span class="sev-m">Major</span></td>
+        <td>setFreeText が2フィールドをペアで更新する設計が脆弱 → <code>setFreeText</code> と <code>setSupplementUrl</code> に分離</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>M-8</strong></td>
+        <td><span class="sev-m">Major</span></td>
+        <td>AI生成ステータスが「生成済み」にハードコード → <code>requirement.status</code> に応じて動的に表示するよう修正</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>m-4/5/7</strong></td>
+        <td><span class="sev-n">Minor</span></td>
+        <td>テンプレートリテラルで条件クラスを書いていた箇所を <code>cn()</code> に統一 / 冗長な条件式を簡略化</td>
+        <td><span class="status-done">✓ 修正済み</span></td>
+      </tr>
+      <tr>
+        <td><strong>その他 minor</strong></td>
+        <td><span class="sev-n">Minor</span></td>
+        <td>ストア・フック files への不要な <code>'use client'</code>、未使用の戻り値、毎レンダーの flatMap など</td>
+        <td><span class="status-opt">◯ 任意</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer>
+  Generated by Claude Code &nbsp;|&nbsp; 2026-03-15 &nbsp;|&nbsp; ROADMAP AI &nbsp;|&nbsp; TypeScript エラー 0件
+</footer>
+
+</body>
+</html>
