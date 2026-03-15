@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>コードレビュー実装レポート — Profile Edit (2026-03-15)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F2F3F0;
+      color: #111111;
+      line-height: 1.6;
+      padding: 40px 20px 80px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      background: #111111;
+      color: #fff;
+      border-radius: 16px;
+      padding: 36px 40px;
+      margin-bottom: 32px;
+    }
+    .page-header .tag {
+      display: inline-block;
+      background: #FF8400;
+      color: #111;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    .page-header h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      margin-bottom: 10px;
+    }
+    .page-header .meta {
+      font-size: 13px;
+      color: #999;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .page-header .meta span { display: flex; align-items: center; gap: 6px; }
+
+    /* ── Summary strip ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .summary-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #CBCCC9;
+      padding: 18px 16px;
+      text-align: center;
+    }
+    .summary-card .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+    .summary-card .count {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .summary-card .label {
+      font-size: 11px;
+      color: #666;
+      font-weight: 600;
+    }
+
+    /* ── File section ── */
+    .file-section {
+      background: #fff;
+      border: 1px solid #CBCCC9;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .file-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 24px;
+      border-bottom: 1px solid #CBCCC9;
+      background: #fafafa;
+    }
+    .file-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .file-path {
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111;
+    }
+    .file-path .dir { color: #999; }
+    .file-changes-count {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 700;
+      color: #666;
+      background: #F2F3F0;
+      border: 1px solid #CBCCC9;
+      border-radius: 999px;
+      padding: 2px 10px;
+    }
+
+    /* ── Change item ── */
+    .change-list { padding: 8px 0; }
+    .change-item {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 0;
+      border-bottom: 1px solid #F2F3F0;
+    }
+    .change-item:last-child { border-bottom: none; }
+    .change-id {
+      padding: 16px 20px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      font-family: monospace;
+      display: flex;
+      align-items: flex-start;
+      padding-top: 18px;
+    }
+    .change-body { padding: 16px 24px 16px 0; }
+    .change-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge-severity {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+    .badge-fixed {
+      font-size: 10px;
+      font-weight: 700;
+      color: #16a34a;
+      background: #dcfce7;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .change-desc {
+      font-size: 13px;
+      color: #444;
+      margin-bottom: 10px;
+    }
+
+    /* severity colors */
+    .sev-critical { color: #dc2626; }
+    .badge-critical { background: #fee2e2; color: #dc2626; }
+    .sev-major { color: #ea580c; }
+    .badge-major { background: #ffedd5; color: #ea580c; }
+    .sev-minor { color: #ca8a04; }
+    .badge-minor { background: #fef9c3; color: #ca8a04; }
+    .sev-suggest { color: #2563eb; }
+    .badge-suggest { background: #dbeafe; color: #2563eb; }
+
+    /* ── Diff block ── */
+    .diff {
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      margin-top: 8px;
+    }
+    .diff-header {
+      background: #f3f4f6;
+      padding: 5px 12px;
+      font-size: 11px;
+      color: #6b7280;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 600;
+    }
+    .diff-body { padding: 6px 0; }
+    .diff-line {
+      padding: 0 12px;
+      display: block;
+      white-space: pre;
+    }
+    .diff-del { background: #fef2f2; color: #b91c1c; }
+    .diff-add { background: #f0fdf4; color: #15803d; }
+    .diff-ctx { color: #6b7280; }
+    .diff-comment { color: #9ca3af; font-style: italic; }
+
+    /* ── Line ref ── */
+    .line-ref {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 11px;
+      background: #F2F3F0;
+      border: 1px solid #CBCCC9;
+      border-radius: 4px;
+      padding: 1px 6px;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    /* ── Good section ── */
+    .good-section {
+      background: #fff;
+      border: 1px solid #CBCCC9;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .good-header {
+      background: #f0fdf4;
+      border-bottom: 1px solid #bbf7d0;
+      padding: 14px 24px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #15803d;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .good-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .good-item {
+      padding: 16px 24px;
+      border-bottom: 1px solid #F2F3F0;
+      border-right: 1px solid #F2F3F0;
+    }
+    .good-item:nth-child(2n) { border-right: none; }
+    .good-item:nth-last-child(-n+2) { border-bottom: none; }
+    .good-id {
+      font-family: monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: #16a34a;
+      margin-bottom: 4px;
+    }
+    .good-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .good-desc { font-size: 12px; color: #555; }
+
+    /* ── Footer ── */
+    .page-footer {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 640px) {
+      .summary-grid { grid-template-columns: repeat(3, 1fr); }
+      .good-grid { grid-template-columns: 1fr; }
+      .change-item { grid-template-columns: 80px 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ══ PAGE HEADER ══ -->
+  <div class="page-header">
+    <div class="tag">Code Review — Implementation</div>
+    <h1>Profile Edit 実装レポート</h1>
+    <div class="meta">
+      <span>📅 2026-03-15</span>
+      <span>🌿 feature/profile-edit</span>
+      <span>✅ 9 / 10 件対応済み</span>
+    </div>
+  </div>
+
+  <!-- ══ SUMMARY ══ -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="dot" style="background:#dc2626"></div>
+      <div class="count sev-critical">2</div>
+      <div class="label">Critical</div>
+    </div>
+    <div class="summary-card">
+      <div class="dot" style="background:#ea580c"></div>
+      <div class="count sev-major">3</div>
+      <div class="label">Major</div>
+    </div>
+    <div class="summary-card">
+      <div class="dot" style="background:#ca8a04"></div>
+      <div class="count sev-minor">3</div>
+      <div class="label">Minor</div>
+    </div>
+    <div class="summary-card">
+      <div class="dot" style="background:#16a34a"></div>
+      <div class="count" style="color:#16a34a">6</div>
+      <div class="label">Good</div>
+    </div>
+    <div class="summary-card">
+      <div class="dot" style="background:#2563eb"></div>
+      <div class="count sev-suggest">2</div>
+      <div class="label">Suggestion</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       FILE 1: ProfileForm.tsx
+  ══════════════════════════════════════════ -->
+  <div class="file-section">
+    <div class="file-header">
+      <div class="file-icon" style="background:#fff3e0">⚛️</div>
+      <div>
+        <div class="file-path">
+          <span class="dir">src/client/components/profile/</span>ProfileForm.tsx
+        </div>
+      </div>
+      <div class="file-changes-count">8 件修正</div>
+    </div>
+
+    <div class="change-list">
+
+      <!-- C-1 -->
+      <div class="change-item">
+        <div class="change-id sev-critical">C-1</div>
+        <div class="change-body">
+          <div class="change-title">
+            Object URL のメモリリーク修正
+            <span class="badge-severity badge-critical">Critical</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">handleFileChange :106–116 / useEffect :55–61</div>
+          <div class="change-desc">
+            <code>URL.createObjectURL()</code> で生成した Blob URL が解放されず蓄積していた。
+            ファイル選択のたびに旧 URL を revoke し、アンマウント時にも cleanup するよう修正。
+          </div>
+          <div class="diff">
+            <div class="diff-header">handleFileChange — 旧 → 新</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- const url = URL.createObjectURL(file)</span>
+<span class="diff-del diff-line">- setForm(f =&gt; ({ ...f, avatarPreviewUrl: url }))</span>
+<span class="diff-add diff-line">+ if (form.avatarPreviewUrl?.startsWith('blob:')) {</span>
+<span class="diff-add diff-line">+   URL.revokeObjectURL(form.avatarPreviewUrl)  // 旧URLを解放</span>
+<span class="diff-add diff-line">+ }</span>
+<span class="diff-add diff-line">+ const url = URL.createObjectURL(file)</span>
+<span class="diff-add diff-line">+ setForm(f =&gt; ({ ...f, avatarPreviewUrl: url }))</span>
+            </div>
+            <div class="diff-header">useEffect cleanup — 追加</div>
+            <div class="diff-body">
+<span class="diff-add diff-line">+ useEffect(() =&gt; {</span>
+<span class="diff-add diff-line">+   return () =&gt; {</span>
+<span class="diff-add diff-line">+     if (form.avatarPreviewUrl?.startsWith('blob:')) {</span>
+<span class="diff-add diff-line">+       URL.revokeObjectURL(form.avatarPreviewUrl)</span>
+<span class="diff-add diff-line">+     }</span>
+<span class="diff-add diff-line">+   }</span>
+<span class="diff-add diff-line">+ }, [form.avatarPreviewUrl])</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C-2 -->
+      <div class="change-item">
+        <div class="change-id sev-critical">C-2</div>
+        <div class="change-body">
+          <div class="change-title">
+            onBlur によるスキル入力の誤作動修正
+            <span class="badge-severity badge-critical">Critical</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">スキル削除ボタン :340, :394 / onBlur :360, :414</div>
+          <div class="change-desc">
+            スキルタグの「×」ボタンをクリックすると input の <code>onBlur</code> が先に発火し、
+            空入力が追加されるバグ。削除ボタンに <code>onMouseDown={e =&gt; e.preventDefault()}</code>
+            を追加して blur を抑制した。
+          </div>
+          <div class="diff">
+            <div class="diff-header">スキル削除ボタン（得意技術・学習中の技術 共通）</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- &lt;button type="button"</span>
+<span class="diff-del diff-line">-   onClick={() =&gt; removeExpertSkill(skill)}</span>
+<span class="diff-add diff-line">+ &lt;button type="button"</span>
+<span class="diff-add diff-line">+   onMouseDown={e =&gt; e.preventDefault()}  {/* blurを抑制 */}</span>
+<span class="diff-add diff-line">+   onClick={() =&gt; removeSkill('expert', skill)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- M-1 -->
+      <div class="change-item">
+        <div class="change-id sev-major">M-1</div>
+        <div class="change-body">
+          <div class="change-title">
+            label の htmlFor / id 追加（アクセシビリティ）
+            <span class="badge-severity badge-major">Major</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">名前 :242–249 / メール :269–275 / 自己紹介 :287–300</div>
+          <div class="change-desc">
+            3 つの <code>&lt;label&gt;</code> に <code>htmlFor</code> が、対応 <code>&lt;input&gt;</code> に
+            <code>id</code> がなかった。WCAG 2.1 Level A 違反。ラベルクリックでフォーカスが当たらず、
+            スクリーンリーダーでも関連付けができなかった。
+          </div>
+          <div class="diff">
+            <div class="diff-header">名前フィールドの例（メール・自己紹介も同様）</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- &lt;label className="..."&gt;名前&lt;/label&gt;</span>
+<span class="diff-del diff-line">- &lt;input type="text" value={form.name} .../&gt;</span>
+<span class="diff-add diff-line">+ &lt;label htmlFor="profile-name" className="..."&gt;名前&lt;/label&gt;</span>
+<span class="diff-add diff-line">+ &lt;input id="profile-name" type="text" value={form.name} .../&gt;</span>
+<span class="diff-ctx diff-line">  // email → id="profile-email"</span>
+<span class="diff-ctx diff-line">  // bio   → id="profile-bio"</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- M-2 -->
+      <div class="change-item">
+        <div class="change-id sev-major">M-2</div>
+        <div class="change-body">
+          <div class="change-title">
+            addExpertSkill / addLearnSkill のDRY化
+            <span class="badge-severity badge-major">Major</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">:119–132（旧 :104–128）</div>
+          <div class="change-desc">
+            ほぼ同一ロジックの 2 関数を <code>addSkill(type)</code> と <code>removeSkill(type, skill)</code>
+            に統合。スキル種別が増えても 1 か所の変更で済む。
+          </div>
+          <div class="diff">
+            <div class="diff-header">統合前 → 統合後</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- function addExpertSkill() {</span>
+<span class="diff-del diff-line">-   const val = expertInput.trim()</span>
+<span class="diff-del diff-line">-   if (val &amp;&amp; !form.expertSkills.includes(val)) {</span>
+<span class="diff-del diff-line">-     setForm(f =&gt; ({ ...f, expertSkills: [...f.expertSkills, val] }))</span>
+<span class="diff-del diff-line">-   }</span>
+<span class="diff-del diff-line">-   setExpertInput(''); setIsAddingExpert(false)</span>
+<span class="diff-del diff-line">- }</span>
+<span class="diff-del diff-line">- function addLearnSkill() { /* 同じ構造 */ }</span>
+<span class="diff-add diff-line">+ function addSkill(type: 'expert' | 'learn') {</span>
+<span class="diff-add diff-line">+   const val = (type === 'expert' ? expertInput : learnInput).trim()</span>
+<span class="diff-add diff-line">+   const key = type === 'expert' ? 'expertSkills' : 'learningSkills'</span>
+<span class="diff-add diff-line">+   if (val &amp;&amp; !form[key].includes(val)) {</span>
+<span class="diff-add diff-line">+     setForm(f =&gt; ({ ...f, [key]: [...f[key], val] }))</span>
+<span class="diff-add diff-line">+   }</span>
+<span class="diff-add diff-line">+   if (type === 'expert') { setExpertInput(''); setIsAddingExpert(false) }</span>
+<span class="diff-add diff-line">+   else { setLearnInput(''); setIsAddingLearn(false) }</span>
+<span class="diff-add diff-line">+ }</span>
+<span class="diff-add diff-line">+ function removeSkill(type: 'expert' | 'learn', skill: string) {</span>
+<span class="diff-add diff-line">+   const key = type === 'expert' ? 'expertSkills' : 'learningSkills'</span>
+<span class="diff-add diff-line">+   setForm(f =&gt; ({ ...f, [key]: f[key].filter(s =&gt; s !== skill) }))</span>
+<span class="diff-add diff-line">+ }</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- m-1 -->
+      <div class="change-item">
+        <div class="change-id sev-minor">m-1</div>
+        <div class="change-body">
+          <div class="change-title">
+            重複バリデーション削除
+            <span class="badge-severity badge-minor">Minor</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">validate() :63–74</div>
+          <div class="change-desc">
+            <code>input</code> に <code>maxLength={50}</code> があるため、
+            <code>validate()</code> 内の <code>name.length &gt; 50</code> チェックはユーザー操作では到達不可能。
+            冗長なチェックを削除し、理由をコメントで記録。
+          </div>
+          <div class="diff">
+            <div class="diff-header">validate()</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- } else if (form.name.length &gt; 50) {</span>
+<span class="diff-del diff-line">-   next.name = '名前は50文字以内で入力してください'</span>
+<span class="diff-del diff-line">- }</span>
+<span class="diff-add diff-line">+ // maxLength={50} on the input already prevents exceeding 50 chars</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- m-2 -->
+      <div class="change-item">
+        <div class="change-id sev-minor">m-2</div>
+        <div class="change-body">
+          <div class="change-title">
+            不要な relative クラスを削除
+            <span class="badge-severity badge-minor">Minor</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">アバター wrapper :186</div>
+          <div class="change-desc">
+            アバターを囲む <code>&lt;div&gt;</code> に <code>relative</code> クラスがあったが、
+            絶対配置の子要素は存在せず不要。削除してDOMを簡潔に。
+          </div>
+          <div class="diff">
+            <div class="diff-header">アバター wrapper</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- &lt;div className="relative shrink-0"&gt;</span>
+<span class="diff-add diff-line">+ &lt;div className="shrink-0"&gt;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- m-3 -->
+      <div class="change-item">
+        <div class="change-id sev-minor">m-3</div>
+        <div class="change-body">
+          <div class="change-title">
+            img に width / height 属性を追加
+            <span class="badge-severity badge-minor">Minor</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">:189–195</div>
+          <div class="change-desc">
+            <code>&lt;img&gt;</code> に明示的な寸法がないと Cumulative Layout Shift (CLS) が発生する。
+            Blob URL のため Next.js の <code>&lt;Image&gt;</code> は使えないが、
+            <code>width={72} height={72}</code> 属性で CLS を防止。
+          </div>
+          <div class="diff">
+            <div class="diff-header">アバター img</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- &lt;img src={form.avatarPreviewUrl} alt="avatar"</span>
+<span class="diff-del diff-line">-   className="w-[72px] h-[72px] rounded-full object-cover" /&gt;</span>
+<span class="diff-add diff-line">+ &lt;img src={form.avatarPreviewUrl} alt="avatar"</span>
+<span class="diff-add diff-line">+   width={72} height={72}</span>
+<span class="diff-add diff-line">+   className="w-[72px] h-[72px] rounded-full object-cover" /&gt;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S-2 -->
+      <div class="change-item">
+        <div class="change-id sev-suggest">S-2</div>
+        <div class="change-body">
+          <div class="change-title">
+            handleCancel を共通化
+            <span class="badge-severity badge-suggest">Suggestion</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">ヘッダー「戻る」ボタン :145</div>
+          <div class="change-desc">
+            「ダッシュボードに戻る」ボタンが <code>router.push('/')</code> をインラインで持ち、
+            「キャンセル」ボタンの <code>handleCancel</code> と重複していた。
+            両方を <code>handleCancel</code> に統一。
+          </div>
+          <div class="diff">
+            <div class="diff-header">ヘッダー「戻る」ボタン</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- onClick={() =&gt; router.push('/')}</span>
+<span class="diff-add diff-line">+ onClick={handleCancel}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /change-list -->
+  </div><!-- /file-section ProfileForm -->
+
+
+  <!-- ══════════════════════════════════════════
+       FILE 2: profile.ts
+  ══════════════════════════════════════════ -->
+  <div class="file-section">
+    <div class="file-header">
+      <div class="file-icon" style="background:#e0f2fe">🖥️</div>
+      <div>
+        <div class="file-path">
+          <span class="dir">src/server/actions/</span>profile.ts
+        </div>
+      </div>
+      <div class="file-changes-count">1 件修正</div>
+    </div>
+
+    <div class="change-list">
+
+      <!-- M-3 -->
+      <div class="change-item">
+        <div class="change-id sev-major">M-3</div>
+        <div class="change-body">
+          <div class="change-title">
+            API レスポンスの明示的フィールドマッピング
+            <span class="badge-severity badge-major">Major</span>
+            <span class="badge-fixed">✓ 修正済み</span>
+          </div>
+          <div class="line-ref">getProfile :20–28 / saveProfile :54–62</div>
+          <div class="change-desc">
+            <code>return data as UserProfile</code> はスネークケース（<code>expert_skills</code>）で返す
+            API レスポンスをキャメルケース型（<code>expertSkills</code>）に無理やりキャストしており、
+            実行時に <code>undefined</code> が混入するリスクがあった。
+            <code>getProfile</code> / <code>saveProfile</code> 双方で明示的マッピングに変更し、
+            <code>satisfies UserProfile</code> で型の完全性を保証する。
+          </div>
+          <div class="diff">
+            <div class="diff-header">getProfile と saveProfile 共通（両関数のレスポンス処理）</div>
+            <div class="diff-body">
+<span class="diff-del diff-line">- const data = await res.json()</span>
+<span class="diff-del diff-line">- if (!data?.id) throw new Error('Invalid response from API')</span>
+<span class="diff-del diff-line">- return data as UserProfile   // ← 暗黙キャスト（危険）</span>
+<span class="diff-add diff-line">+ const data = await res.json()</span>
+<span class="diff-add diff-line">+ if (!data?.id) throw new Error('Invalid response from API')</span>
+<span class="diff-add diff-line">+ return {</span>
+<span class="diff-add diff-line">+   id:             data.id,</span>
+<span class="diff-add diff-line">+   name:           data.name,</span>
+<span class="diff-add diff-line">+   email:          data.email,</span>
+<span class="diff-add diff-line">+   bio:            data.bio ?? '',</span>
+<span class="diff-add diff-line">+   avatarUrl:      data.avatar_url ?? null,   // snake → camel</span>
+<span class="diff-add diff-line">+   expertSkills:   data.expert_skills ?? [],  // snake → camel</span>
+<span class="diff-add diff-line">+   learningSkills: data.learning_skills ?? [], // snake → camel</span>
+<span class="diff-add diff-line">+ } satisfies UserProfile</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /file-section profile.ts -->
+
+
+  <!-- ══ GOOD POINTS ══ -->
+  <div class="good-section">
+    <div class="good-header">
+      ✅ Good Points — 変更不要（元々よかった箇所）
+    </div>
+    <div class="good-grid">
+      <div class="good-item">
+        <div class="good-id">G-1</div>
+        <div class="good-title">エラーハンドリングの徹底</div>
+        <div class="good-desc"><code>try/catch/finally</code> で <code>isPending</code> が必ず <code>false</code> に戻る。<code>err instanceof Error</code> ガードも適切。</div>
+      </div>
+      <div class="good-item">
+        <div class="good-id">G-2</div>
+        <div class="good-title">スキル重複排除</div>
+        <div class="good-desc"><code>!form.expertSkills.includes(val)</code> で同一スキルの二重登録を防止。</div>
+      </div>
+      <div class="good-item">
+        <div class="good-id">G-3</div>
+        <div class="good-title">削除ボタンの aria-label</div>
+        <div class="good-desc">スキル削除ボタンに <code>aria-label="{skill}を削除"</code> が付いており、スクリーンリーダーで操作可能。</div>
+      </div>
+      <div class="good-item">
+        <div class="good-id">G-4</div>
+        <div class="good-title">サーバーアクションのパターン一貫性</div>
+        <div class="good-desc"><code>requirements.ts</code> と同一の <code>API_URL</code> チェック・エラースローパターンで統一。</div>
+      </div>
+      <div class="good-item">
+        <div class="good-id">G-5</div>
+        <div class="good-title">TODO コメントの明確さ</div>
+        <div class="good-desc">対応 issue 番号を紐付けた TODO（例: <code>// TODO: ... (#006)</code>）が適切に配置。</div>
+      </div>
+      <div class="good-item">
+        <div class="good-id">G-6</div>
+        <div class="good-title">role="alert" の使用</div>
+        <div class="good-desc">一般エラーに <code>role="alert"</code> を付与し、スクリーンリーダーが即座に読み上げる。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REMAINING ══ -->
+  <div class="file-section">
+    <div class="file-header">
+      <div class="file-icon" style="background:#f3e8ff">⏳</div>
+      <div>
+        <div class="file-path">未対応（任意）</div>
+      </div>
+    </div>
+    <div class="change-list">
+      <div class="change-item">
+        <div class="change-id sev-suggest">S-1</div>
+        <div class="change-body">
+          <div class="change-title">
+            SkillTagInput サブコンポーネントへの切り出し
+            <span class="badge-severity badge-suggest">Suggestion</span>
+          </div>
+          <div class="change-desc">
+            得意技術・学習中の技術セクションはタグ色だけが異なる同一構造。
+            <code>SkillTagInput</code> コンポーネントに切り出すと ProfileForm の JSX が大幅に短縮できる。
+            スキル種別が 3 種以上になるタイミングで対応を検討。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FOOTER ══ -->
+  <div class="page-footer">
+    Generated by Claude Code — 2026-03-15 &nbsp;|&nbsp;
+    <code>docs/reviews/review_20260315_000000.html</code>
+  </div>
+
+</div>
+</body>
+</html>
