@@ -13,7 +13,6 @@ import { cn } from "@/client/lib/cn";
 type NavItem = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  active?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -21,11 +20,15 @@ const NAV_ITEMS: NavItem[] = [
   { label: "要件定義",        icon: SlidersHorizontal },
   { label: "AI生成結果",      icon: Sparkles },
   { label: "ロードマップ",    icon: Kanban },
-  { label: "チーム管理",      icon: Users, active: true },
+  { label: "チーム管理",      icon: Users },
   { label: "学習リソース",    icon: GraduationCap },
 ];
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  activeLabel?: string;
+}
+
+export function DashboardSidebar({ activeLabel = "チーム管理" }: DashboardSidebarProps) {
   return (
     <aside
       className="flex flex-col w-[280px] min-h-screen bg-[#18181b] shrink-0"
@@ -52,7 +55,7 @@ export function DashboardSidebar() {
               key={item.label}
               className={cn(
                 "flex items-center gap-4 rounded-full px-4 py-3",
-                item.active && "bg-[#2a2a30]"
+                item.label === activeLabel && "bg-[#2a2a30]"
               )}
             >
               <Icon className="w-6 h-6 text-[#fafafa] shrink-0" />
