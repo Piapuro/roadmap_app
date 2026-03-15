@@ -56,10 +56,7 @@ export function MemberTable({ members: initialMembers }: MemberTableProps) {
         <span className="font-[family-name:var(--font-jetbrains-mono)] text-[#666666] text-[11px] font-semibold w-[200px]">
           スキル
         </span>
-        <span className="font-[family-name:var(--font-jetbrains-mono)] text-[#666666] text-[11px] font-semibold w-[100px]">
-          ステータス
-        </span>
-        <span className="font-[family-name:var(--font-jetbrains-mono)] text-[#666666] text-[11px] font-semibold w-[80px] text-center">
+<span className="font-[family-name:var(--font-jetbrains-mono)] text-[#666666] text-[11px] font-semibold w-[80px] text-center">
           操作
         </span>
       </div>

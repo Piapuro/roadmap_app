@@ -1,5 +1,4 @@
 export type TeamRole = "PM" | "FE" | "BE" | "UI/UX" | "Infra";
-export type MemberStatus = "online" | "away" | "offline";
 export type ProjectRole = "OWNER" | "MEMBER";
 
 export interface Member {
@@ -10,7 +9,6 @@ export interface Member {
   role: TeamRole;
   projectRole: ProjectRole;
   skills: string[];
-  status: MemberStatus;
 }
 
 export const ROLE_STYLES: Record<
@@ -49,15 +47,6 @@ export const ROLE_STYLES: Record<
   },
 };
 
-export const STATUS_STYLES: Record<
-  MemberStatus,
-  { dot: string; label: string; textColor: string }
-> = {
-  online: { dot: "bg-green-500", label: "オンライン", textColor: "text-[#111111]" },
-  away: { dot: "bg-amber-400", label: "離席中", textColor: "text-[#666666]" },
-  offline: { dot: "bg-gray-400", label: "オフライン", textColor: "text-[#666666]" },
-};
-
 // BE実装（issue #015）が完了するまでのモックデータ
 // モック上のログインユーザー: id="1"（田中 太郎）= OWNER
 export const MOCK_CURRENT_USER_ID = "1";
@@ -71,7 +60,6 @@ export const MOCK_MEMBERS: Member[] = [
     role: "PM",
     projectRole: "OWNER",
     skills: ["Next.js", "TypeScript"],
-    status: "online",
   },
   {
     id: "2",
@@ -81,7 +69,6 @@ export const MOCK_MEMBERS: Member[] = [
     role: "FE",
     projectRole: "MEMBER",
     skills: ["React", "CSS"],
-    status: "online",
   },
   {
     id: "3",
@@ -91,7 +78,6 @@ export const MOCK_MEMBERS: Member[] = [
     role: "BE",
     projectRole: "MEMBER",
     skills: ["Go", "PostgreSQL"],
-    status: "away",
   },
   {
     id: "4",
@@ -101,6 +87,5 @@ export const MOCK_MEMBERS: Member[] = [
     role: "UI/UX",
     projectRole: "MEMBER",
     skills: ["Figma", "Tailwind"],
-    status: "online",
   },
 ];

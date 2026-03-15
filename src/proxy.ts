@@ -31,7 +31,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // 未ログインかつ認証必須ページへのアクセスはログインへリダイレクト
-  const PROTECTED_PATHS = ["/dashboard", "/teams", "/setup"];
+  const PROTECTED_PATHS = ["/dashboard", "/setup"];
   const isProtected = PROTECTED_PATHS.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );

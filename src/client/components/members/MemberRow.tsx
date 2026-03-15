@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Crown, MoreHorizontal, LogOut, UserMinus, ShieldCheck } from "lucide-react";
 import { cn } from "@/client/lib/cn";
 import type { Member } from "@/types/member";
-import { ROLE_STYLES, STATUS_STYLES } from "@/types/member";
+import { ROLE_STYLES } from "@/types/member";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 type DialogType = "kick" | "transfer" | "leave" | null;
@@ -27,7 +27,6 @@ export function MemberRow({
   onLeave,
 }: MemberRowProps) {
   const role = ROLE_STYLES[member.role];
-  const status = STATUS_STYLES[member.status];
   const isMe = member.id === currentUserId;
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogType>(null);
@@ -96,19 +95,6 @@ export function MemberRow({
               {skill}
             </span>
           ))}
-        </div>
-
-        {/* Status */}
-        <div className="w-[100px] shrink-0 flex items-center gap-1.5">
-          <div className={cn("w-[7px] h-[7px] rounded-full shrink-0", status.dot)} />
-          <span
-            className={cn(
-              "font-[family-name:var(--font-geist-sans)] text-xs",
-              status.textColor
-            )}
-          >
-            {status.label}
-          </span>
         </div>
 
         {/* Action */}
