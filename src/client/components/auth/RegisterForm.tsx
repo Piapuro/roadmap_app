@@ -68,24 +68,28 @@ export function RegisterForm() {
     }
     setErrors({});
     setIsPending(true);
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: { name: form.name },
-      },
-    });
-    if (error) {
-      setErrors({ general: toJaErrorMessage(error.message) });
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: { name: form.name },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        },
+      });
+      if (error) {
+        setErrors({ general: toJaErrorMessage(error.message) });
+        return;
+      }
+      if (data.session) {
+        router.refresh();
+        router.push("/onboarding");
+      } else {
+        router.push("/register/check-email");
+      }
+    } finally {
       setIsPending(false);
-      return;
-    }
-    if (data.session) {
-      router.refresh();
-      router.push("/dashboard");
-    } else {
-      router.push("/register/check-email");
     }
   }
 
@@ -226,7 +230,7 @@ function toJaErrorMessage(msg: string): string {
   if (msg.includes("already registered") || msg.includes("already been registered"))
     return "このメールアドレスはすでに登録されています";
   if (msg.includes("Password should be"))
-    return "パスワードは6文字以上で入力してください";
+    return "パスワードは8文字以上で入力してください";
   if (msg.includes("rate limit") || msg.includes("too many"))
     return "しばらく時間をおいてから再試行してください";
   if (msg.includes("invalid email") || msg.includes("Invalid email"))

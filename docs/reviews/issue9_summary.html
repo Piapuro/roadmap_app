@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issue #009 実装レポート — オンボーディング画面</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --border: #2a3347;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --primary: #f97316;
+    --primary-light: rgba(249,115,22,.15);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,.12);
+    --orange: #fb923c;
+    --orange-bg: rgba(251,146,60,.12);
+    --yellow: #fbbf24;
+    --yellow-bg: rgba(251,191,36,.1);
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,.1);
+    --blue: #60a5fa;
+    --blue-bg: rgba(96,165,250,.1);
+    --purple: #a78bfa;
+    --purple-bg: rgba(167,139,250,.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* Layout */
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Header */
+  .header { text-align: center; padding: 56px 0 48px; border-bottom: 1px solid var(--border); margin-bottom: 48px; }
+  .header .badge { display: inline-block; background: var(--primary-light); color: var(--primary); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 999px; margin-bottom: 16px; }
+  .header h1 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .header .meta { color: var(--muted); font-size: 13px; }
+  .header .meta span { margin: 0 8px; }
+
+  /* Section */
+  .section { margin-bottom: 56px; }
+  .section-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* Score Card */
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .score-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+  .score-card .num { font-size: 28px; font-weight: 800; }
+  .score-card .label { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .05em; }
+  .score-card.critical { border-color: rgba(248,113,113,.4); }
+  .score-card.critical .num { color: var(--red); }
+  .score-card.major { border-color: rgba(251,146,60,.4); }
+  .score-card.major .num { color: var(--orange); }
+  .score-card.minor { border-color: rgba(251,191,36,.4); }
+  .score-card.minor .num { color: var(--yellow); }
+  .score-card.good { border-color: rgba(74,222,128,.4); }
+  .score-card.good .num { color: var(--green); }
+  .score-card.suggest { border-color: rgba(96,165,250,.4); }
+  .score-card.suggest .num { color: var(--blue); }
+  .score-card.score { border-color: rgba(249,115,22,.5); }
+  .score-card.score .num { color: var(--primary); }
+
+  /* File cards */
+  .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .file-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px; }
+  .file-card .icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .file-card .icon.new { background: var(--green-bg); }
+  .file-card .icon.mod { background: var(--yellow-bg); }
+  .file-card .path { font-size: 12px; font-family: 'Cascadia Code', 'Fira Code', monospace; color: var(--text); word-break: break-all; }
+  .file-card .tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; margin-top: 4px; }
+  .file-card .tag.new { background: var(--green-bg); color: var(--green); }
+  .file-card .tag.mod { background: var(--yellow-bg); color: var(--yellow); }
+
+  /* Issue cards */
+  .issue-list { display: flex; flex-direction: column; gap: 16px; }
+  .issue-card { background: var(--bg2); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  .issue-header { padding: 14px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+  .issue-id { font-size: 11px; font-weight: 700; font-family: monospace; padding: 3px 8px; border-radius: 5px; flex-shrink: 0; }
+  .issue-header h3 { font-size: 14px; font-weight: 600; color: #fff; flex: 1; }
+  .issue-header .file-ref { font-size: 11px; color: var(--muted); font-family: monospace; }
+  .issue-body { padding: 16px 18px; }
+  .issue-body p { color: #c0cada; font-size: 13px; line-height: 1.7; margin-bottom: 12px; }
+  .issue-body p:last-child { margin-bottom: 0; }
+
+  /* Severity colors */
+  .sev-critical .issue-header { background: var(--red-bg); border-left: 3px solid var(--red); }
+  .sev-critical .issue-id { background: var(--red-bg); color: var(--red); }
+  .sev-major .issue-header { background: var(--orange-bg); border-left: 3px solid var(--orange); }
+  .sev-major .issue-id { background: var(--orange-bg); color: var(--orange); }
+  .sev-minor .issue-header { background: var(--yellow-bg); border-left: 3px solid var(--yellow); }
+  .sev-minor .issue-id { background: var(--yellow-bg); color: var(--yellow); }
+  .sev-good .issue-header { background: var(--green-bg); border-left: 3px solid var(--green); }
+  .sev-good .issue-id { background: var(--green-bg); color: var(--green); }
+  .sev-suggest .issue-header { background: var(--blue-bg); border-left: 3px solid var(--blue); }
+  .sev-suggest .issue-id { background: var(--blue-bg); color: var(--blue); }
+
+  /* Code blocks */
+  pre { background: #0a0e18; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 10px 0; }
+  code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 12px; line-height: 1.6; }
+  pre code { color: #abb2bf; }
+  .diff-add { color: #98c379; }
+  .diff-del { color: #e06c75; }
+  .diff-comment { color: #5c6370; }
+  .diff-kw { color: #c678dd; }
+  .diff-str { color: #98c379; }
+  .diff-fn { color: #61afef; }
+  .diff-type { color: #e5c07b; }
+  .diff-num { color: #d19a66; }
+
+  /* Action items */
+  .action-list { display: flex; flex-direction: column; gap: 8px; }
+  .action-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; display: flex; align-items: flex-start; gap: 12px; }
+  .action-item input[type=checkbox] { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; accent-color: var(--primary); }
+  .action-item .action-text { font-size: 13px; }
+  .action-item .action-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-left: 8px; vertical-align: middle; }
+  .badge-critical { background: var(--red-bg); color: var(--red); }
+  .badge-major { background: var(--orange-bg); color: var(--orange); }
+  .badge-suggest { background: var(--blue-bg); color: var(--blue); }
+
+  /* Change diff section */
+  .change-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+  .change-header { padding: 12px 18px; background: var(--bg3); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .change-header .filename { font-family: monospace; font-size: 13px; color: #fff; }
+  .change-header .tag-new { font-size: 10px; font-weight: 700; background: var(--green-bg); color: var(--green); padding: 2px 8px; border-radius: 4px; }
+  .change-header .tag-mod { font-size: 10px; font-weight: 700; background: var(--yellow-bg); color: var(--yellow); padding: 2px 8px; border-radius: 4px; }
+  .change-body { padding: 16px 18px; }
+  .change-body p { color: #c0cada; font-size: 13px; line-height: 1.7; margin-bottom: 12px; }
+
+  /* Feature list */
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .feature-list li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #c0cada; }
+  .feature-list li::before { content: '→'; color: var(--primary); flex-shrink: 0; margin-top: 1px; }
+
+  /* Overall verdict */
+  .verdict { background: linear-gradient(135deg, rgba(249,115,22,.15) 0%, rgba(249,115,22,.05) 100%); border: 1px solid rgba(249,115,22,.3); border-radius: 16px; padding: 28px 32px; text-align: center; margin-bottom: 32px; }
+  .verdict .score-big { font-size: 48px; font-weight: 900; color: var(--primary); }
+  .verdict .score-label { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .verdict .verdict-text { font-size: 16px; font-weight: 600; color: #fff; margin-top: 12px; }
+
+  /* Tabs */
+  .tab-nav { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab-nav .tab { padding: 10px 18px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: default; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab-nav .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+  .divider { height: 1px; background: var(--border); margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ========== HEADER ========== -->
+  <div class="header">
+    <div class="badge">Issue #009 · Sprint 1</div>
+    <h1>オンボーディング画面実装レポート</h1>
+    <div class="meta">
+      <span>Branch: <code>feature/issue9</code></span>
+      <span>·</span>
+      <span>2026-03-12</span>
+      <span>·</span>
+      <span>Reviewer: Claude Code</span>
+    </div>
+  </div>
+
+  <!-- ========== OVERVIEW ========== -->
+  <div class="section">
+    <div class="section-title">概要</div>
+    <div class="change-block">
+      <div class="change-body">
+        <p>
+          登録完了直後に表示される <strong>オンボーディング画面</strong> を実装しました。
+          ユーザーが自身のスキルレベル（初心者 / 中級者 / 上級者）と得意な技術タグ（複数選択）を入力し、
+          Supabase の <code>users.skill_level</code> および <code>user_skills</code> テーブルに保存します。
+        </p>
+        <ul class="feature-list">
+          <li>スキルレベルセレクター（3カード選択 UI）</li>
+          <li>技術タグ複数選択（フロントエンド / バックエンド / インフラ 3カテゴリ・20タグ）</li>
+          <li>Supabase への DB 保存（<code>users</code> UPDATE + <code>user_skills</code> INSERT）</li>
+          <li>新規登録フローを <code>/dashboard</code> → <code>/onboarding</code> にリダイレクト変更</li>
+          <li><code>roadmap.pen</code> に画面 O1 デザインを追加（ノード <code>FVq4l</code>）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CHANGED FILES ========== -->
+  <div class="section">
+    <div class="section-title">変更ファイル一覧</div>
+    <div class="file-grid">
+      <div class="file-card">
+        <div class="icon new">✦</div>
+        <div>
+          <div class="path">src/types/onboarding.ts</div>
+          <div class="tag new">NEW</div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="icon new">✦</div>
+        <div>
+          <div class="path">src/app/(auth)/onboarding/page.tsx</div>
+          <div class="tag new">NEW</div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="icon new">✦</div>
+        <div>
+          <div class="path">src/client/components/onboarding/SkillsForm.tsx</div>
+          <div class="tag new">NEW</div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="icon mod">✎</div>
+        <div>
+          <div class="path">src/client/components/auth/RegisterForm.tsx</div>
+          <div class="tag mod">MODIFIED</div>
+        </div>
+      </div>
+      <div class="file-card">
+        <div class="icon new">✦</div>
+        <div>
+          <div class="path">roadmap.pen (Screen O1, node: FVq4l)</div>
+          <div class="tag new">DESIGN</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CHANGES DETAIL ========== -->
+  <div class="section">
+    <div class="section-title">変更内容の詳細</div>
+
+    <!-- types/onboarding.ts -->
+    <div class="change-block">
+      <div class="change-header">
+        <span class="filename">src/types/onboarding.ts</span>
+        <span class="tag-new">NEW</span>
+      </div>
+      <div class="change-body">
+        <p>スキルレベルの型定義・定数・技術タグデータを一元管理するファイル。</p>
+        <pre><code><span class="diff-kw">export type</span> <span class="diff-type">SkillLevel</span> = <span class="diff-str">"beginner"</span> | <span class="diff-str">"intermediate"</span> | <span class="diff-str">"advanced"</span>;
+
+<span class="diff-kw">export interface</span> <span class="diff-type">SkillTag</span> {
+  id: <span class="diff-type">string</span>;
+  name: <span class="diff-type">string</span>;
+  category: <span class="diff-str">"frontend"</span> | <span class="diff-str">"backend"</span> | <span class="diff-str">"infra"</span>;
+}
+
+<span class="diff-comment">// スキルレベル選択肢 (3種)</span>
+<span class="diff-kw">export const</span> SKILL_LEVEL_OPTIONS = [
+  { value: <span class="diff-str">"beginner"</span>,     label: <span class="diff-str">"初心者"</span>,  description: <span class="diff-str">"プログラミング経験が浅い"</span> },
+  { value: <span class="diff-str">"intermediate"</span>,  label: <span class="diff-str">"中級者"</span>,  description: <span class="diff-str">"実務経験がある"</span> },
+  { value: <span class="diff-str">"advanced"</span>,      label: <span class="diff-str">"上級者"</span>,  description: <span class="diff-str">"豊富な実務経験がある"</span> },
+];
+
+<span class="diff-comment">// 技術タグ 20件 (frontend 8 / backend 8 / infra 4)</span>
+<span class="diff-kw">export const</span> SKILL_TAGS: <span class="diff-type">SkillTag</span>[] = [ ... ]
+
+<span class="diff-comment">// 3カテゴリ</span>
+<span class="diff-kw">export const</span> SKILL_CATEGORIES = [
+  { key: <span class="diff-str">"frontend"</span>, label: <span class="diff-str">"フロントエンド"</span> },
+  { key: <span class="diff-str">"backend"</span>,  label: <span class="diff-str">"バックエンド"</span> },
+  { key: <span class="diff-str">"infra"</span>,    label: <span class="diff-str">"インフラ / その他"</span> },
+];</code></pre>
+      </div>
+    </div>
+
+    <!-- onboarding/page.tsx -->
+    <div class="change-block">
+      <div class="change-header">
+        <span class="filename">src/app/(auth)/onboarding/page.tsx</span>
+        <span class="tag-new">NEW</span>
+      </div>
+      <div class="change-body">
+        <p>ログイン画面と同様の <strong>左右分割レイアウト</strong>。左パネルにブランドカラー + ステップインジケーター、右パネルにフォームカード。Server Component。</p>
+        <pre><code><span class="diff-kw">const</span> STEPS = [
+  { num: <span class="diff-str">"1"</span>, label: <span class="diff-str">"アカウント作成"</span>, done: <span class="diff-num">true</span>,  active: <span class="diff-num">false</span> },
+  { num: <span class="diff-str">"2"</span>, label: <span class="diff-str">"スキル登録"</span>,     done: <span class="diff-num">false</span>, active: <span class="diff-num">true</span>  },
+  { num: <span class="diff-str">"3"</span>, label: <span class="diff-str">"チーム設定"</span>,     done: <span class="diff-num">false</span>, active: <span class="diff-num">false</span> },
+];
+
+<span class="diff-kw">export default function</span> <span class="diff-fn">OnboardingPage</span>() {
+  <span class="diff-kw">return</span> (
+    &lt;<span class="diff-type">div</span> className=<span class="diff-str">"flex h-screen overflow-hidden"</span>&gt;
+      <span class="diff-comment">{/* 左パネル: ブランド + ステップ表示 */}</span>
+      &lt;<span class="diff-type">div</span> className=<span class="diff-str">"hidden lg:flex w-[480px] bg-primary ..."</span>&gt;
+        ...
+      &lt;/<span class="diff-type">div</span>&gt;
+      <span class="diff-comment">{/* 右パネル: フォームカード */}</span>
+      &lt;<span class="diff-type">div</span> className=<span class="diff-str">"flex flex-1 flex-col justify-center ..."</span>&gt;
+        &lt;<span class="diff-type">div</span> className=<span class="diff-str">"rounded-2xl border bg-card p-10 shadow-..."</span>&gt;
+          &lt;<span class="diff-type">SkillsForm</span> /&gt;
+        &lt;/<span class="diff-type">div</span>&gt;
+      &lt;/<span class="diff-type">div</span>&gt;
+    &lt;/<span class="diff-type">div</span>&gt;
+  );
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- SkillsForm.tsx -->
+    <div class="change-block">
+      <div class="change-header">
+        <span class="filename">src/client/components/onboarding/SkillsForm.tsx</span>
+        <span class="tag-new">NEW</span>
+      </div>
+      <div class="change-body">
+        <p>
+          Client Component。<code>useTransition</code> で非同期 DB 書き込みをラップ。
+          スキルレベル選択 + タグ複数選択 + Supabase 保存 + スキップ機能。
+        </p>
+        <pre><code><span class="diff-kw">export function</span> <span class="diff-fn">SkillsForm</span>() {
+  <span class="diff-kw">const</span> [isPending, startTransition] = <span class="diff-fn">useTransition</span>();
+  <span class="diff-kw">const</span> [skillLevel, setSkillLevel] = <span class="diff-fn">useState</span>&lt;<span class="diff-type">SkillLevel</span>&gt;(<span class="diff-str">"beginner"</span>);
+  <span class="diff-kw">const</span> [selectedTags, setSelectedTags] = <span class="diff-fn">useState</span>&lt;<span class="diff-type">Set</span>&lt;<span class="diff-type">string</span>&gt;&gt;(<span class="diff-kw">new</span> <span class="diff-fn">Set</span>());
+
+  <span class="diff-comment">// ✅ immutable な Set トグル</span>
+  <span class="diff-kw">function</span> <span class="diff-fn">toggleTag</span>(tagId: <span class="diff-type">string</span>) {
+    <span class="diff-fn">setSelectedTags</span>((prev) =&gt; {
+      <span class="diff-kw">const</span> next = <span class="diff-kw">new</span> <span class="diff-fn">Set</span>(prev);
+      next.has(tagId) ? next.delete(tagId) : next.add(tagId);
+      <span class="diff-kw">return</span> next;
+    });
+  }
+
+  <span class="diff-kw">function</span> <span class="diff-fn">handleSubmit</span>(e: <span class="diff-type">React.FormEvent</span>) {
+    e.preventDefault();
+    <span class="diff-fn">startTransition</span>(<span class="diff-kw">async</span> () =&gt; {
+      <span class="diff-kw">const</span> supabase = <span class="diff-fn">createClient</span>();
+      <span class="diff-kw">const</span> { data: { user } } = <span class="diff-kw">await</span> supabase.auth.<span class="diff-fn">getUser</span>();
+
+      <span class="diff-comment">// users.skill_level を UPDATE</span>
+      <span class="diff-kw">await</span> supabase.from(<span class="diff-str">"users"</span>)
+        .update({ skill_level: skillLevel }).eq(<span class="diff-str">"id"</span>, user.id);
+
+      <span class="diff-comment">// user_skills を INSERT</span>
+      <span class="diff-kw">if</span> (selectedTags.size &gt; <span class="diff-num">0</span>) {
+        <span class="diff-kw">const</span> skillRows = SKILL_TAGS
+          .filter(t =&gt; selectedTags.has(t.id))
+          .map(t =&gt; ({ user_id: user.id, skill_name: t.name, is_learning_goal: <span class="diff-num">false</span> }));
+        <span class="diff-kw">await</span> supabase.from(<span class="diff-str">"user_skills"</span>).insert(skillRows);
+      }
+      router.push(<span class="diff-str">"/dashboard"</span>);
+    });
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- RegisterForm.tsx -->
+    <div class="change-block">
+      <div class="change-header">
+        <span class="filename">src/client/components/auth/RegisterForm.tsx</span>
+        <span class="tag-mod">MODIFIED</span>
+      </div>
+      <div class="change-body">
+        <p>新規登録後のリダイレクト先を <code>/dashboard</code> から <code>/onboarding</code> に変更。メール確認リンクの <code>emailRedirectTo</code> も同様に更新。</p>
+        <pre><code><span class="diff-comment">// emailRedirectTo を /onboarding に変更</span>
+<span class="diff-del">-  emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,</span>
+<span class="diff-add">+  emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,</span>
+
+<span class="diff-comment">// セッション即時ログイン時のリダイレクト先を変更</span>
+  <span class="diff-kw">if</span> (data.session) {
+    router.refresh();
+<span class="diff-del">-   router.push(<span class="diff-str">"/dashboard"</span>);</span>
+<span class="diff-add">+   router.push(<span class="diff-str">"/onboarding"</span>);</span>
+  }</code></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========== REVIEW SCORE ========== -->
+  <div class="section">
+    <div class="section-title">コードレビュー結果</div>
+
+    <div class="verdict">
+      <div class="score-big">3.5 <span style="font-size:24px;color:var(--muted)">/ 5.0</span></div>
+      <div class="score-label">総合スコア</div>
+      <div class="verdict-text">Needs Work — 認証ガードと冪等性の修正が必要</div>
+    </div>
+
+    <div class="score-grid">
+      <div class="score-card critical">
+        <div class="num">3</div>
+        <div class="label">🔴 Critical</div>
+      </div>
+      <div class="score-card major">
+        <div class="num">4</div>
+        <div class="label">🟠 Major</div>
+      </div>
+      <div class="score-card minor">
+        <div class="num">5</div>
+        <div class="label">🟡 Minor</div>
+      </div>
+      <div class="score-card good">
+        <div class="num">5</div>
+        <div class="label">🟢 Good</div>
+      </div>
+      <div class="score-card suggest">
+        <div class="num">4</div>
+        <div class="label">🔵 Suggestion</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CRITICAL ========== -->
+  <div class="section">
+    <div class="section-title">🔴 Critical Issues（マージ前に必須修正）</div>
+    <div class="issue-list">
+
+      <div class="issue-card sev-critical">
+        <div class="issue-header">
+          <span class="issue-id">C-1</span>
+          <h3>認証ガードなし — 未認証ユーザーがページを閲覧できる</h3>
+          <span class="file-ref">proxy.ts + onboarding/page.tsx</span>
+        </div>
+        <div class="issue-body">
+          <p>
+            <code>/onboarding</code> が <code>PROTECTED_PATHS</code> に含まれていないため、Middleware レベルで未認証アクセスが素通りします。
+            <code>SkillsForm</code> 内の DB 書き込みは <code>getUser()</code> で防がれますが、ページ表示は阻止できません。
+          </p>
+          <pre><code><span class="diff-comment">// ❌ src/proxy.ts:37</span>
+<span class="diff-kw">const</span> PROTECTED_PATHS = [<span class="diff-str">"/dashboard"</span>, <span class="diff-str">"/teams"</span>, <span class="diff-str">"/setup"</span>];
+<span class="diff-comment">// /onboarding が含まれていない</span>
+
+<span class="diff-comment">// ✅ 修正案 (1) proxy.ts に追加</span>
+<span class="diff-kw">const</span> PROTECTED_PATHS = [<span class="diff-str">"/dashboard"</span>, <span class="diff-str">"/teams"</span>, <span class="diff-str">"/setup"</span>, <span class="diff-str">"/onboarding"</span>];
+
+<span class="diff-comment">// ✅ 修正案 (2) Server Component で getUser チェックを追加</span>
+<span class="diff-kw">export default async function</span> <span class="diff-fn">OnboardingPage</span>() {
+  <span class="diff-kw">const</span> supabase = <span class="diff-kw">await</span> <span class="diff-fn">createClient</span>();
+  <span class="diff-kw">const</span> { data: { user } } = <span class="diff-kw">await</span> supabase.auth.<span class="diff-fn">getUser</span>();
+  <span class="diff-kw">if</span> (!user) <span class="diff-fn">redirect</span>(<span class="diff-str">"/login"</span>);
+  <span class="diff-comment">// ...以降は既存 JSX</span>
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="issue-card sev-critical">
+        <div class="issue-header">
+          <span class="issue-id">C-2</span>
+          <h3>スキップ時に skill_level が NULL のまま残る</h3>
+          <span class="file-ref">SkillsForm.tsx:172</span>
+        </div>
+        <div class="issue-body">
+          <p>
+            「スキップ」ボタンは一切の保存処理なしに <code>/dashboard</code> へ遷移します。
+            ダウンストリームの機能が <code>skill_level</code> を参照する際、<code>NULL</code> を想定していなければ実行時エラーになります。
+          </p>
+          <pre><code><span class="diff-comment">// ❌ 現在</span>
+&lt;button onClick={() => router.push(<span class="diff-str">"/dashboard"</span>)}&gt;スキップ&lt;/button&gt;
+
+<span class="diff-comment">// ✅ 修正案: デフォルト値を書き込んでからスキップ</span>
+<span class="diff-kw">async function</span> <span class="diff-fn">handleSkip</span>() {
+  <span class="diff-kw">const</span> supabase = <span class="diff-fn">createClient</span>();
+  <span class="diff-kw">const</span> { data: { user } } = <span class="diff-kw">await</span> supabase.auth.<span class="diff-fn">getUser</span>();
+  <span class="diff-kw">if</span> (user) {
+    <span class="diff-kw">await</span> supabase.from(<span class="diff-str">"users"</span>)
+      .update({ skill_level: <span class="diff-str">"beginner"</span>, onboarding_skipped: <span class="diff-num">true</span> })
+      .eq(<span class="diff-str">"id"</span>, user.id);
+  }
+  router.push(<span class="diff-str">"/dashboard"</span>);
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="issue-card sev-critical">
+        <div class="issue-header">
+          <span class="issue-id">C-3</span>
+          <h3>isPending が finally でリセットされない</h3>
+          <span class="file-ref">RegisterForm.tsx:85-90</span>
+        </div>
+        <div class="issue-body">
+          <p>
+            <code>signUp</code> 成功後に <code>router.push()</code> が呼ばれると <code>isPending</code> が <code>true</code> のまま残ります。
+            ブラウザバック時にボタンが永続的に無効化されます。
+          </p>
+          <pre><code><span class="diff-comment">// ✅ 修正案: try/finally でリセット保証</span>
+<span class="diff-kw">async function</span> <span class="diff-fn">handleSubmit</span>(e: <span class="diff-type">React.FormEvent</span>) {
+  e.preventDefault();
+  <span class="diff-fn">setErrors</span>({});
+  <span class="diff-fn">setIsPending</span>(<span class="diff-num">true</span>);
+  <span class="diff-kw">try</span> {
+    <span class="diff-kw">const</span> { data, error } = <span class="diff-kw">await</span> supabase.auth.<span class="diff-fn">signUp</span>({ ... });
+    <span class="diff-kw">if</span> (error) { <span class="diff-fn">setErrors</span>({ general: <span class="diff-fn">toJaErrorMessage</span>(error.message) }); <span class="diff-kw">return</span>; }
+    <span class="diff-kw">if</span> (data.session) { router.push(<span class="diff-str">"/onboarding"</span>); }
+    <span class="diff-kw">else</span> { router.push(<span class="diff-str">"/register/check-email"</span>); }
+  } <span class="diff-kw">finally</span> {
+    <span class="diff-fn">setIsPending</span>(<span class="diff-num">false</span>); <span class="diff-comment">// ← 追加</span>
+  }
+}</code></pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== MAJOR ========== -->
+  <div class="section">
+    <div class="section-title">🟠 Major Issues（スプリント内対応推奨）</div>
+    <div class="issue-list">
+
+      <div class="issue-card sev-major">
+        <div class="issue-header">
+          <span class="issue-id">M-1</span>
+          <h3>クライアントから直接 DB 書き込み（アーキテクチャ違反）</h3>
+          <span class="file-ref">SkillsForm.tsx:47-61</span>
+        </div>
+        <div class="issue-body">
+          <p>
+            プロジェクト規約では <code>src/server/</code> = Server-side only。DB 書き込みは Server Action 経由にすべきです。
+            RLS の設定ミス時に他ユーザーのデータを上書きできるリスクがあります。
+          </p>
+          <pre><code><span class="diff-comment">// ✅ 修正案: Server Action を作成</span>
+<span class="diff-comment">// src/server/actions/onboarding.ts</span>
+<span class="diff-str">"use server"</span>;
+<span class="diff-kw">export async function</span> <span class="diff-fn">saveOnboardingSkills</span>(
+  skillLevel: <span class="diff-type">SkillLevel</span>,
+  skillIds: <span class="diff-type">string</span>[]
+) {
+  <span class="diff-kw">const</span> supabase = <span class="diff-kw">await</span> <span class="diff-fn">createClient</span>(); <span class="diff-comment">// server-side client</span>
+  <span class="diff-kw">const</span> { data: { user } } = <span class="diff-kw">await</span> supabase.auth.<span class="diff-fn">getUser</span>();
+  <span class="diff-kw">if</span> (!user) <span class="diff-kw">throw new</span> <span class="diff-fn">Error</span>(<span class="diff-str">"認証が必要です"</span>);
+  <span class="diff-comment">// ... UPDATE / INSERT</span>
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="issue-card sev-major">
+        <div class="issue-header">
+          <span class="issue-id">M-2</span>
+          <h3>user_skills が INSERT のみ — 重複行が発生する</h3>
+          <span class="file-ref">SkillsForm.tsx:60</span>
+        </div>
+        <div class="issue-body">
+          <p>
+            ブラウザバックや再訪問時に同じタグが重複 INSERT されます。
+            <code>UNIQUE(user_id, skill_name)</code> 制約違反でエラーが起きるか、重複行が溜まり続けます。
+          </p>
+          <pre><code><span class="diff-comment">// ❌ 現在</span>
+<span class="diff-kw">await</span> supabase.from(<span class="diff-str">"user_skills"</span>).insert(skillRows);
+
+<span class="diff-comment">// ✅ upsert で冪等性を確保</span>
+<span class="diff-kw">await</span> supabase.from(<span class="diff-str">"user_skills"</span>)
+  .upsert(skillRows, { onConflict: <span class="diff-str">"user_id,skill_name"</span> });</code></pre>
+        </div>
+      </div>
+
+      <div class="issue-card sev-major">
+        <div class="issue-header">
+          <span class="issue-id">M-3</span>
+          <h3>パスワード最小文字数メッセージが矛盾（8文字 vs 6文字）</h3>
+          <span class="file-ref">RegisterForm.tsx:48 / :229</span>
+        </div>
+        <div class="issue-body">
+          <p>
+            フロントのバリデーションは「8文字以上」、Supabase エラーの日本語変換は「6文字以上」を返します。ユーザーが混乱します。
+          </p>
+          <pre><code><span class="diff-comment">// ❌ src/client/components/auth/RegisterForm.tsx:229</span>
+<span class="diff-kw">if</span> (msg.includes(<span class="diff-str">"Password should be"</span>))
+  <span class="diff-kw">return</span> <span class="diff-str">"パスワードは6文字以上で入力してください"</span>; <span class="diff-comment">// 矛盾</span>
+
+<span class="diff-comment">// ✅ フロントのバリデーションに統一</span>
+<span class="diff-kw">if</span> (msg.includes(<span class="diff-str">"Password should be"</span>))
+  <span class="diff-kw">return</span> <span class="diff-str">"パスワードは8文字以上で入力してください"</span>;</code></pre>
+        </div>
+      </div>
+
+      <div class="issue-card sev-major">
+        <div class="issue-header">
+          <span class="issue-id">M-4</span>
+          <h3>オンボーディング完了済みユーザーが再訪問するとデータが上書きされる</h3>
+          <span class="file-ref">onboarding/page.tsx</span>
+        </div>
+        <div class="issue-body">
+          <p>
+            <code>skill_level</code> 設定済みユーザーが <code>/onboarding</code> に再訪問すると上書きされます。M-2 の重複問題と合わさると <code>user_skills</code> が増殖します。
+          </p>
+          <pre><code><span class="diff-comment">// ✅ Server Component で完了済みチェック</span>
+<span class="diff-kw">const</span> { data: profile } = <span class="diff-kw">await</span> supabase.from(<span class="diff-str">"users"</span>)
+  .select(<span class="diff-str">"onboarding_completed"</span>).eq(<span class="diff-str">"id"</span>, user.id).single();
+
+<span class="diff-kw">if</span> (profile?.onboarding_completed) {
+  <span class="diff-fn">redirect</span>(<span class="diff-str">"/dashboard"</span>);
+}</code></pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== MINOR ========== -->
+  <div class="section">
+    <div class="section-title">🟡 Minor Issues（改善推奨）</div>
+    <div class="issue-list">
+
+      <div class="issue-card sev-minor">
+        <div class="issue-header">
+          <span class="issue-id">m-1</span>
+          <h3>PostgreSQL / MySQL が infra カテゴリに分類されている</h3>
+          <span class="file-ref">types/onboarding.ts:36</span>
+        </div>
+        <div class="issue-body">
+          <p>DB はインフラと別カテゴリ（例: <code>"database"</code>）が適切。型定義への追加も必要。</p>
+        </div>
+      </div>
+
+      <div class="issue-card sev-minor">
+        <div class="issue-header">
+          <span class="issue-id">m-2</span>
+          <h3>bg-[#fff4e8] のハードコードカラー — ダークモード非対応</h3>
+          <span class="file-ref">SkillsForm.tsx:98</span>
+        </div>
+        <div class="issue-body">
+          <pre><code><span class="diff-del">- "border-primary bg-[#fff4e8]"</span>
+<span class="diff-add">+ "border-primary bg-primary/10"</span></code></pre>
+        </div>
+      </div>
+
+      <div class="issue-card sev-minor">
+        <div class="issue-header">
+          <span class="issue-id">m-3</span>
+          <h3>ステップインジケーターが静的ハードコード</h3>
+          <span class="file-ref">onboarding/page.tsx:13</span>
+        </div>
+        <div class="issue-body">
+          <p>将来ステップが増える場合、保守コストが高い。URL パラメータや共通定義から動的生成を検討。</p>
+        </div>
+      </div>
+
+      <div class="issue-card sev-minor">
+        <div class="issue-header">
+          <span class="issue-id">m-4</span>
+          <h3>bg-blue-50 / text-blue-600 がデザイントークン外</h3>
+          <span class="file-ref">SkillsForm.tsx:154</span>
+        </div>
+        <div class="issue-body">
+          <p>インフォノートに Tailwind の raw カラークラスが直書きされており、テーマ変更時に崩れます。</p>
+        </div>
+      </div>
+
+      <div class="issue-card sev-minor">
+        <div class="issue-header">
+          <span class="issue-id">m-5</span>
+          <h3>メール正規表現が単純すぎる（意図コメントなし）</h3>
+          <span class="file-ref">RegisterForm.tsx:43</span>
+        </div>
+        <div class="issue-body">
+          <p>設計意図（詳細検証は Supabase に委ねる）をコメントで明記すると可読性が上がります。</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== GOOD ========== -->
+  <div class="section">
+    <div class="section-title">🟢 Good Points</div>
+    <div class="issue-list">
+
+      <div class="issue-card sev-good">
+        <div class="issue-header">
+          <span class="issue-id">G-1</span>
+          <h3>オープンリダイレクト対策が適切</h3>
+          <span class="file-ref">auth/callback/route.ts:8</span>
+        </div>
+        <div class="issue-body">
+          <p><code>next</code> パラメータが <code>/</code> 始まりかつ <code>//</code> でないことを検証しており、外部リダイレクトを防いでいます。</p>
+        </div>
+      </div>
+
+      <div class="issue-card sev-good">
+        <div class="issue-header">
+          <span class="issue-id">G-2</span>
+          <h3>Set を使った immutable なトグル実装</h3>
+          <span class="file-ref">SkillsForm.tsx:21</span>
+        </div>
+        <div class="issue-body">
+          <p><code>new Set(prev)</code> で新しいインスタンスを返す形は React 状態更新のベストプラクティスです。</p>
+        </div>
+      </div>
+
+      <div class="issue-card sev-good">
+        <div class="issue-header">
+          <span class="issue-id">G-3</span>
+          <h3>型定義とデータ定数を types/onboarding.ts に一元管理</h3>
+          <span class="file-ref">types/onboarding.ts</span>
+        </div>
+        <div class="issue-body">
+          <p>型とデータの二重管理が起きない設計。追加・変更が一箇所で済みます。</p>
+        </div>
+      </div>
+
+      <div class="issue-card sev-good">
+        <div class="issue-header">
+          <span class="issue-id">G-4</span>
+          <h3>useTransition の適切な活用</h3>
+          <span class="file-ref">SkillsForm.tsx:33</span>
+        </div>
+        <div class="issue-body">
+          <p>非同期 DB 書き込みを <code>useTransition</code> で包み、React の並行レンダリングに対応しています。</p>
+        </div>
+      </div>
+
+      <div class="issue-card sev-good">
+        <div class="issue-header">
+          <span class="issue-id">G-5</span>
+          <h3>Field コンポーネントの DRY な抽出</h3>
+          <span class="file-ref">RegisterForm.tsx</span>
+        </div>
+        <div class="issue-body">
+          <p>入力フィールドのラベル・エラー表示を <code>Field</code> コンポーネントとして抽出。既存パターンの踏襲も適切です。</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== SUGGESTIONS ========== -->
+  <div class="section">
+    <div class="section-title">🔵 Suggestions</div>
+    <div class="issue-list">
+
+      <div class="issue-card sev-suggest">
+        <div class="issue-header">
+          <span class="issue-id">S-1</span>
+          <h3>選択タグ数に上限を設定（例: 最大10個）</h3>
+          <span class="file-ref">SkillsForm.tsx</span>
+        </div>
+        <div class="issue-body">
+          <pre><code><span class="diff-kw">const</span> MAX_TAGS = <span class="diff-num">10</span>;
+<span class="diff-kw">function</span> <span class="diff-fn">toggleTag</span>(tagId: <span class="diff-type">string</span>) {
+  <span class="diff-fn">setSelectedTags</span>((prev) =&gt; {
+    <span class="diff-kw">const</span> next = <span class="diff-kw">new</span> <span class="diff-fn">Set</span>(prev);
+    <span class="diff-kw">if</span> (next.has(tagId)) next.delete(tagId);
+    <span class="diff-kw">else if</span> (next.size &lt; MAX_TAGS) next.add(tagId);
+    <span class="diff-kw">return</span> next;
+  });
+}</code></pre>
+        </div>
+      </div>
+
+      <div class="issue-card sev-suggest">
+        <div class="issue-header">
+          <span class="issue-id">S-2</span>
+          <h3>SKILL_TAGS を将来的に DB / CMS から取得する設計に</h3>
+          <span class="file-ref">types/onboarding.ts</span>
+        </div>
+        <div class="issue-body">
+          <p>タグの追加・翻訳対応を考えると、DB から取得する Server Component 設計への移行を検討してください。</p>
+        </div>
+      </div>
+
+      <div class="issue-card sev-suggest">
+        <div class="issue-header">
+          <span class="issue-id">S-3</span>
+          <h3>aria-pressed / role="radio" でアクセシビリティ改善</h3>
+          <span class="file-ref">SkillsForm.tsx</span>
+        </div>
+        <div class="issue-body">
+          <pre><code><span class="diff-comment">// タグボタン</span>
+&lt;button aria-pressed={isSelected} ...&gt;
+
+<span class="diff-comment">// スキルレベルボタン群</span>
+&lt;div role=<span class="diff-str">"radiogroup"</span>&gt;
+  &lt;button role=<span class="diff-str">"radio"</span> aria-checked={isSelected} ...&gt;</code></pre>
+        </div>
+      </div>
+
+      <div class="issue-card sev-suggest">
+        <div class="issue-header">
+          <span class="issue-id">S-4</span>
+          <h3>ブランドアイコンを統一（Compass vs MapPin）</h3>
+          <span class="file-ref">onboarding/page.tsx</span>
+        </div>
+        <div class="issue-body">
+          <p>ログインページは <code>Compass</code>、オンボーディングは <code>MapPin</code>。デザイン規約を定義して統一してください。</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== ACTION ITEMS ========== -->
+  <div class="section">
+    <div class="section-title">アクションアイテム</div>
+    <div class="action-list">
+      <div class="action-item">
+        <input type="checkbox">
+        <span class="action-text">
+          [C-1] <code>proxy.ts</code> の PROTECTED_PATHS に <code>/onboarding</code> を追加し、Server Component でも <code>getUser()</code> チェックを実装する
+          <span class="action-badge badge-critical">必須・今すぐ</span>
+        </span>
+      </div>
+      <div class="action-item">
+        <input type="checkbox">
+        <span class="action-text">
+          [C-2] スキップボタンにデフォルト値（<code>skill_level: "beginner"</code>）の保存処理を追加する
+          <span class="action-badge badge-critical">必須・今すぐ</span>
+        </span>
+      </div>
+      <div class="action-item">
+        <input type="checkbox">
+        <span class="action-text">
+          [C-3] <code>RegisterForm.handleSubmit</code> に <code>finally { setIsPending(false) }</code> を追加する
+          <span class="action-badge badge-critical">必須・今すぐ</span>
+        </span>
+      </div>
+      <div class="action-item">
+        <input type="checkbox">
+        <span class="action-text">
+          [M-1] DB 書き込みを Server Action (<code>src/server/actions/onboarding.ts</code>) に移行する
+          <span class="action-badge badge-major">推奨・今週中</span>
+        </span>
+      </div>
+      <div class="action-item">
+        <input type="checkbox">
+        <span class="action-text">
+          [M-2] <code>user_skills</code> の INSERT を <code>upsert</code> に変更し、冪等性を確保する
+          <span class="action-badge badge-major">推奨・今週中</span>
+        </span>
+      </div>
+      <div class="action-item">
+        <input type="checkbox">
+        <span class="action-text">
+          [M-3] <code>toJaErrorMessage</code> のパスワードエラーを「8文字以上」に統一する
+          <span class="action-badge badge-major">推奨・今週中</span>
+        </span>
+      </div>
+      <div class="action-item">
+        <input type="checkbox">
+        <span class="action-text">
+          [M-4] オンボーディング完了済みユーザーのリダイレクト処理を実装する
+          <span class="action-badge badge-major">推奨・今週中</span>
+        </span>
+      </div>
+      <div class="action-item">
+        <input type="checkbox">
+        <span class="action-text">
+          [S-3] タグ・スキルレベルボタンに <code>aria-pressed</code> / <code>role="radio"</code> を付与する
+          <span class="action-badge badge-suggest">任意</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:48px;padding-top:24px;border-top:1px solid var(--border)">
+    Generated by Claude Code / code-review skill &mdash; 2026-03-12
+  </div>
+
+</div>
+</body>
+</html>

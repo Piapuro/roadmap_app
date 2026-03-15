@@ -47,18 +47,23 @@ export function LoginForm() {
     }
     setErrors({});
     setIsPending(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    });
-    if (error) {
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      });
+      if (error) {
+        setErrors({ general: "メールアドレスまたはパスワードが正しくありません" });
+        return;
+      }
+      router.refresh();
+      router.push("/dashboard");
+    } catch {
       setErrors({ general: "メールアドレスまたはパスワードが正しくありません" });
+    } finally {
       setIsPending(false);
-      return;
     }
-    router.refresh();
-    router.push("/dashboard");
   }
 
   return (
