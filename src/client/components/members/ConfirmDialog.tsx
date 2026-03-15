@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 interface ConfirmDialogProps {
   title: string;
   description: string;
@@ -17,6 +19,39 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Escapeキーでキャンセル
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
+
+  // フォーカストラップ
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const focusable = dialog.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    first?.focus();
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
+      }
+    };
+    dialog.addEventListener("keydown", trap);
+    return () => dialog.removeEventListener("keydown", trap);
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -26,9 +61,18 @@ export function ConfirmDialog({
       />
 
       {/* Dialog */}
-      <div className="relative z-10 w-[400px] rounded-xl bg-white border border-[#CBCCC9] shadow-lg p-6 flex flex-col gap-5">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+        className="relative z-10 w-[400px] rounded-xl bg-white border border-[#CBCCC9] shadow-lg p-6 flex flex-col gap-5"
+      >
         <div className="flex flex-col gap-2">
-          <h2 className="font-[family-name:var(--font-jetbrains-mono)] text-[#111111] text-base font-bold">
+          <h2
+            id="confirm-dialog-title"
+            className="font-[family-name:var(--font-jetbrains-mono)] text-[#111111] text-base font-bold"
+          >
             {title}
           </h2>
           <p className="font-[family-name:var(--font-geist-sans)] text-[#666666] text-[13px] leading-relaxed">

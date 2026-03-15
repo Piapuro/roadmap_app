@@ -31,11 +31,15 @@ export function MemberRow({
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogType>(null);
 
-  const handleConfirm = () => {
-    if (dialog === "kick") onKick(member.id);
-    if (dialog === "transfer") onTransfer(member.id);
-    if (dialog === "leave") onLeave();
-    setDialog(null);
+  const handleConfirm = async () => {
+    try {
+      if (dialog === "kick" && member.projectRole === "MEMBER") await onKick(member.id);
+      else if (dialog === "transfer" && member.projectRole === "MEMBER") await onTransfer(member.id);
+      else if (dialog === "leave") await onLeave();
+      setDialog(null);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
