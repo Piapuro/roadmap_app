@@ -6,7 +6,7 @@ import { DashboardSidebar } from "@/client/components/members/DashboardSidebar";
 import { MemberTable } from "@/client/components/members/MemberTable";
 import { MemberSearch } from "@/client/components/members/MemberSearch";
 import { InvitePanel } from "@/client/components/members/InvitePanel";
-import { MOCK_MEMBERS } from "@/types/member";
+import { MOCK_MEMBERS, MOCK_CURRENT_USER_ID } from "@/client/mocks/member";
 
 export const metadata: Metadata = {
   title: "チーム管理 | ROADMAP AI",
@@ -76,7 +76,7 @@ export default async function MembersPage({ searchParams }: PageProps) {
             </div>
 
             {/* Table */}
-            <MemberTable members={filtered} />
+            <MemberTable members={filtered} currentUserId={MOCK_CURRENT_USER_ID} />
           </div>
 
           {/* Right panel */}
